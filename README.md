@@ -4,7 +4,7 @@
 
 ######It is written in Rust using [nom](https://github.com/Geal/nom). `tomlkit` is the command line tool that has the same functionality as the library  (but doesn't actually exist yet, but then again neither does the library).
 
-[![Build Status](https://travis-ci.org/joelself/toml_parser.svg?branch=master)](https://travis-ci.org/joelself/toml_parser) [![Coverage Status](https://coveralls.io/repos/joelself/toml_parser/badge.svg?branch=master&service=github)](https://coveralls.io/github/joelself/toml_parser?branch=master) [![ghit.me](https://ghit.me/badge.svg?repo=joelself/toml_parser)](https://ghit.me/repo/joelself/toml_parser)
+[![Build Status](https://travis-ci.org/joelself/tomllib.svg?branch=master)](https://travis-ci.org/joelself/toml_parser) [![Coverage Status](https://coveralls.io/repos/joelself/tomllib/badge.svg?branch=master&service=github)](https://coveralls.io/github/joelself/tomllib?branch=master) [![ghit.me](https://ghit.me/badge.svg?repo=joelself/tomllib)](https://ghit.me/repo/joelself/tomllib)
 
 ####What does it mean that it doesn't judge me?###
 
