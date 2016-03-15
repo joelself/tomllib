@@ -4,7 +4,7 @@
   - [x] Add line numbers to errors
   - [ ] **Add documentation to public enums, structs, functions, methods and macros**
   - [x] Switch names of TOMLValue and Value
-  - [x] Rename TOMLParser to TOMLTOMLParser
+  - [x] Rename Parser to TOMLParser
 
 * primitives.rs
 	- [x] Implement get_keychain_key

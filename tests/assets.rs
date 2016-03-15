@@ -2,7 +2,7 @@ use std::fs;
 use std::fs::File;
 extern crate tomllib;
 extern crate env_logger;
-use tomllib::parser::TOMLParser;
+use tomllib::TOMLParser;
 use tomllib::types::ParseResult;
 use std::io::{Read, BufReader};
 

@@ -6,9 +6,9 @@ macro_rules! to_val(
       &TOMLValue::Float(ref v) => Value::Float(v.clone()),
       &TOMLValue::Boolean(v) => Value::Boolean(v),
       &TOMLValue::DateTime(ref v) => Value::DateTime(v.clone()),
-      &TOMLValue::Array(ref arr) => TOMLParser::sanitize_array(arr.clone()),
+      &TOMLValue::Array(ref arr) => Parser::sanitize_array(arr.clone()),
       &TOMLValue::String(ref s, t) => Value::String(s.clone(), t.clone()),
-      &TOMLValue::InlineTable(ref it) => TOMLParser::sanitize_inline_table(it.clone()),
+      &TOMLValue::InlineTable(ref it) => Parser::sanitize_inline_table(it.clone()),
       &TOMLValue::Table => panic!("Cannot convert a Table to a Value"),
     }
   );

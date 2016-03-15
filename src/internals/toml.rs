@@ -1,8 +1,8 @@
 use internals::ast::structs::{Toml, NLExpression, Expression, WSSep};
-use parser::TOMLParser;
+use internals::parser::Parser;
 
-impl<'a> TOMLParser<'a> {
-  method!(pub toml<TOMLParser<'a>, &'a str, Toml>, mut self,
+impl<'a> Parser<'a> {
+  method!(pub toml<Parser<'a>, &'a str, Toml>, mut self,
     chain!(
       expr: call_m!(self.expression)    ~
   nl_exprs: call_m!(self.nl_expressions),
@@ -13,9 +13,9 @@ impl<'a> TOMLParser<'a> {
     )
   );
 
-  method!(nl_expressions<TOMLParser<'a>, &'a str, Vec<NLExpression> >, mut self, many0!(call_m!(self.nl_expression)));
+  method!(nl_expressions<Parser<'a>, &'a str, Vec<NLExpression> >, mut self, many0!(call_m!(self.nl_expression)));
 
-  method!(nl_expression<TOMLParser<'a>, &'a str, NLExpression>, mut self,
+  method!(nl_expression<Parser<'a>, &'a str, NLExpression>, mut self,
     chain!(
        nl: call_m!(self.newline)    ~
      expr: call_m!(self.expression) ,
@@ -25,7 +25,7 @@ impl<'a> TOMLParser<'a> {
     )
   );
 
-  method!(expression<TOMLParser<'a>, &'a str,  Expression>, mut self,
+  method!(expression<Parser<'a>, &'a str,  Expression>, mut self,
     alt!(
       complete!(call_m!(self.table_comment))  |
       complete!(call_m!(self.keyval_comment)) |
@@ -34,7 +34,7 @@ impl<'a> TOMLParser<'a> {
     )
   );
 
-  method!(ws_expr<TOMLParser<'a>, &'a str, Expression>, mut self,
+  method!(ws_expr<Parser<'a>, &'a str, Expression>, mut self,
     chain!(
       ws: call_m!(self.ws),
       ||{
@@ -42,7 +42,7 @@ impl<'a> TOMLParser<'a> {
       }
     ));
 
-  method!(table_comment<TOMLParser<'a>, &'a str, Expression>, mut self,
+  method!(table_comment<Parser<'a>, &'a str, Expression>, mut self,
     chain!(
       ws1: call_m!(self.ws)                 ~
     table: call_m!(self.table)              ~
@@ -54,7 +54,7 @@ impl<'a> TOMLParser<'a> {
     )
   );
 
-  method!(keyval_comment<TOMLParser<'a>, &'a str, Expression>, mut self,
+  method!(keyval_comment<Parser<'a>, &'a str, Expression>, mut self,
     chain!(
       ws1: call_m!(self.ws)       ~
    keyval: call_m!(self.keyval)   ~
@@ -66,7 +66,7 @@ impl<'a> TOMLParser<'a> {
     )
   );
 
-  method!(ws_comment<TOMLParser<'a>, &'a str, Expression>, mut self,
+  method!(ws_comment<Parser<'a>, &'a str, Expression>, mut self,
     chain!(
        ws: call_m!(self.ws)     ~
   comment: call_m!(self.comment),
@@ -82,7 +82,7 @@ mod test {
   use std::rc::Rc;
   use std::cell::RefCell;
   use nom::IResult::Done;
-  use parser::TOMLParser;
+  use internals::parser::Parser;
   use types::{TimeOffsetAmount, DateTime, Date, Time, TimeOffset, StrType};
   use internals::ast::structs::{Expression, Comment, WSSep, KeyVal, Table, WSKeySep,
                      TableType, TOMLValue, NLExpression, ArrayValue, Toml,
@@ -91,7 +91,7 @@ mod test {
 
   #[test]
   fn test_toml() {
-    let p = TOMLParser::new();
+    let p = Parser::new();
     assert_eq!(p.toml(
 r#"# Tλïƨ ïƨ á TÓM£ δôçú₥èñƭ.
 
@@ -223,12 +223,12 @@ enabled = true"#).1, Done("",
 
   #[test]
   fn test_nl_expressions() {
-    let mut p = TOMLParser::new();
+    let mut p = Parser::new();
     // allow for zero expressions
     assert_eq!(p.nl_expressions("aoeunth £ôřè₥ ïƥƨú₥ doℓôř ƨïƭ amet, çônƨèçƭeƭuř áδïƥïscïñϱ èℓïƭ").1,
       Done("aoeunth £ôřè₥ ïƥƨú₥ doℓôř ƨïƭ amet, çônƨèçƭeƭuř áδïƥïscïñϱ èℓïƭ", vec![])
     );
-    p = TOMLParser::new();
+    p = Parser::new();
     assert_eq!(p.nl_expressions("\n[\"δřá\"]#Mèƨsaϱè\r\nkey=\"value\"#wλïƭeƨƥáçè\n").1,
       Done(
         "", vec![
@@ -260,7 +260,7 @@ enabled = true"#).1, Done("",
         ]
       )
     );
-    p = TOMLParser::new();
+    p = Parser::new();
     assert_eq!(p.nl_expressions("\n[[NODOTNET.\"NÓJÂVÂ\"]]").1,
       Done(
         "", vec![
@@ -279,7 +279,7 @@ enabled = true"#).1, Done("",
 // named!(nl_expression<&'a str, NLExpression>,
   #[test]
   fn test_nl_expression() {
-    let p = TOMLParser::new();
+    let p = Parser::new();
     assert_eq!(p.nl_expression("\r\n   SimpleKey = 1_2_3_4_5     #  áñ áƭƭè₥ƥƭ ƭô δèƒïñè TÓM£\r\n").1,
       Done("\r\n", NLExpression::new_str(
         "\r\n", Expression::new(
@@ -294,7 +294,7 @@ enabled = true"#).1, Done("",
 
   #[test]
   fn test_expression() {
-    let mut p = TOMLParser::new();
+    let mut p = Parser::new();
     assert_eq!(p.expression(" \t[\"δřáƒƭ\".THISKEY  . \tkeythethird] \t#Mèƨƨáϱè Rèƥℓïèδ\n").1,
       Done("\n",
         Expression::new(
@@ -307,7 +307,7 @@ enabled = true"#).1, Done("",
           Some(Comment::new_str("Mèƨƨáϱè Rèƥℓïèδ"))
         )
     ));
-    p = TOMLParser::new();
+    p = Parser::new();
     assert_eq!(p.expression("\t\t\t\"řúññïñϱôúƭôƒωôřδƨ\" = 0.1  #Â₥èřïçáñ Éжƥřèƨƨ\n").1,
       Done("\n",
         Expression::new(
@@ -317,13 +317,13 @@ enabled = true"#).1, Done("",
           None, Some(Comment::new_str("Â₥èřïçáñ Éжƥřèƨƨ"))
         )
       ));
-    p = TOMLParser::new();
+    p = Parser::new();
     assert_eq!(p.expression("\t \t #Þℓèáƨè Ʋèřïƒ¥ Your áççôúñƭ\n").1, Done("\n",
       Expression::new(
         WSSep::new_str("\t \t ", ""), None, None, Some(Comment::new_str("Þℓèáƨè Ʋèřïƒ¥ Your áççôúñƭ"))
       )
     ));
-    p = TOMLParser::new();
+    p = Parser::new();
     assert_eq!(p.expression("\t  \t  \t\n").1, Done("\n",
       Expression::new(
         WSSep::new_str("\t  \t  \t", ""), None, None, None,
@@ -332,7 +332,7 @@ enabled = true"#).1, Done("",
 
   #[test]
   fn test_ws_expr() {
-    let p = TOMLParser::new();
+    let p = Parser::new();
     assert_eq!(p.ws_expr("  \t \t \n").1, Done("\n", 
       Expression::new(WSSep::new_str("  \t \t ", ""), None, None, None)
     ));
@@ -340,7 +340,7 @@ enabled = true"#).1, Done("",
 
   #[test]
   fn test_table_comment() {
-    let p = TOMLParser::new();
+    let p = Parser::new();
     assert_eq!(p.table_comment(" [table.\"ƭáβℓè\"] #úñïçôřñřôβôƭ\n").1,
       Done("\n",
         Expression::new(WSSep::new_str(" ", " "), None, Some(Rc::new(TableType::Standard(Table::new_str(
@@ -355,7 +355,7 @@ enabled = true"#).1, Done("",
 
   #[test]
   fn test_keyval_comment() {
-    let p = TOMLParser::new();
+    let p = Parser::new();
     assert_eq!(p.keyval_comment(" \"Tôƭáℓℓ¥\" = true\t#λèřè ïƨ ₥¥ çô₥₥èñƭ\n").1,
       Done("\n",
         Expression::new(WSSep::new_str(" ", "\t"), Some(KeyVal::new_str(
@@ -368,7 +368,7 @@ enabled = true"#).1, Done("",
 
   #[test]
   fn test_ws_comment() {
-    let p = TOMLParser::new();
+    let p = Parser::new();
     assert_eq!(p.ws_comment(" \t #This is RÂNÐÓM §TRÌNG\n").1, Done("\n",
       Expression::new(WSSep::new_str(" \t ", ""), None, None, Some(Comment::new_str("This is RÂNÐÓM §TRÌNG"))
       )

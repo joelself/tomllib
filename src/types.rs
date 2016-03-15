@@ -7,18 +7,19 @@ use std::error::Error;
 use std::fmt::Display;
 use std::str::FromStr;
 use std::borrow::Cow;
-use parser::TOMLParser;
+use internals::parser::Parser;
 use nom::IResult;
 
 #[derive(Debug, Eq, PartialEq, Clone)]
 pub enum ParseResult<'a> {
 	Full,
-	FullError,
+	FullError(Rc<RefCell<Vec<ParseError<'a>>>>),
 	Partial(Cow<'a, str>, usize, usize),
-	PartialError(Cow<'a, str>, usize, usize),
+	PartialError(Cow<'a, str>, usize, usize, Rc<RefCell<Vec<ParseError<'a>>>>),
 	Failure(usize, usize),
 }
 
+#[derive(Debug, Eq, PartialEq, Clone)]
 pub enum ParseError<'a> {
 	MixedArray(String, usize, usize),
 	DuplicateKey(String, usize, usize, Value<'a>),
@@ -36,7 +37,7 @@ pub enum ParseError<'a> {
   GenericError(String, usize, usize, Option<Cow<'a, str>>, String),
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub enum Value<'a> {
 	Integer(Cow<'a, str>),
 	Float(Cow<'a, str>),
@@ -437,7 +438,7 @@ impl<'a> Value<'a> {
   }
   pub fn datetime_parse<S>(dt: S) -> Result<Value<'a>, TOMLError> where S: Into<&'a str> {
     let datetime = dt.into();
-    let p = TOMLParser::new();
+    let p = Parser::new();
     match p.date_time(datetime) {
       (_, IResult::Done(i, o)) => {
         let result = Value::DateTime(o);
@@ -486,14 +487,14 @@ impl<'a> Value<'a> {
   pub fn validate(&self) -> bool{
     match self {
       &Value::Integer(ref s) => {
-        let p = TOMLParser::new();
+        let p = Parser::new();
         match p.integer(s) {
            (_, IResult::Done(_, _)) => true,
            (_,_) => false,
         }
       },
       &Value::Float(ref s) => {
-        let p = TOMLParser::new();
+        let p = Parser::new();
         match p.float(s) {
            (_, IResult::Done(_, _)) => true,
            (_,_) => false,
@@ -503,25 +504,25 @@ impl<'a> Value<'a> {
       &Value::String(ref s, st) => {
         match st {
           StrType::Basic => {
-            match TOMLParser::quoteless_basic_string(s) {
+            match Parser::quoteless_basic_string(s) {
               IResult::Done(i,_) => i.len() == 0,
               _ => false,
             }
           },
           StrType::MLBasic => {
-            match TOMLParser::quoteless_ml_basic_string(s) {
+            match Parser::quoteless_ml_basic_string(s) {
               IResult::Done(i,_) => i.len() == 0,
               _ => false,
             }
           },
           StrType::Literal => {
-            match TOMLParser::quoteless_literal_string(s) {
+            match Parser::quoteless_literal_string(s) {
               IResult::Done(i,_) => i.len() == 0,
               _ => false,
             }
           },
           StrType::MLLiteral => {
-            match TOMLParser::quoteless_ml_literal_string(s) {
+            match Parser::quoteless_ml_literal_string(s) {
               IResult::Done(i,_) => i.len() == 0,
               _ => false,
             }

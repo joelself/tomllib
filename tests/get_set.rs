@@ -1,17 +1,17 @@
 extern crate tomllib;
 extern crate env_logger;
-use tomllib::parser::TOMLParser;
+use tomllib::TOMLParser;
 use tomllib::types::{ParseResult, Value, ParseError, Children};
 use std::rc::Rc;
 use std::cell::{Cell, RefCell};
 
 
 
-  #[test]
-  fn test_output_after_set() {
-    let _ = env_logger::init();
-    let p = TOMLParser::new();
-    let (mut p, _) = p.parse(r#"animal = "bear"
+#[test]
+fn test_output_after_set() {
+  let _ = env_logger::init();
+  let p = TOMLParser::new();
+  let (mut p, _) = p.parse(r#"animal = "bear"
 
 [[car.owners]]
 Name = """Bob Jones"""
@@ -31,36 +31,36 @@ model = "Civic"
 "Date of Manufacture" = 2007-05-16T10:12:13.2324+04:00
 drivers = ["Bob", "Jane", "John", "Michael", { disallowed = "Chris", banned="Sally"}]
 properties = { color = "red", "plate number" = "ABC 345",
-               accident_dates = [2008-09-29, 2011-01-16, 2014-11-30T03:13:54]}
+              accident_dates = [2008-09-29, 2011-01-16, 2014-11-30T03:13:54]}
 "#);
-    p.set_value("car.interior.seats.type", Value::basic_string("leather").unwrap());
-    p.set_value("car.interior.seats.type", Value::basic_string("vinyl").unwrap());
-    p.set_value("car.owners[0].Age", Value::float_from_str("19.5").unwrap());
-    p.set_value("car.owners[1].Name", Value::ml_basic_string("Steve Parker").unwrap());
-    p.set_value("car.drivers[4].banned", Value::datetime_from_int(2013, 9, 23, 17, 34, 2).unwrap());
-    p.set_value("car.properties.color", Value::int(19));
-    p.set_value("car.properties.accident_dates[2]", Value::float(3443.34));
-    p.set_value("car.drivers[1]", Value::ml_literal_string("Mark").unwrap());
-    p.set_value("car.properties", Value::InlineTable(Rc::new(
-      vec![("make".into(), Value::literal_string("Honda").unwrap()),
-           ("transmission".into(), Value::bool(true))]
-    )));
-    p.set_value("car.drivers", Value::Array(Rc::new(
-      vec![Value::basic_string("Phil").unwrap(), Value::basic_string("Mary").unwrap()]
-    )));
-    p.set_value("car.properties", Value::InlineTable(Rc::new(
-      vec![("prop1".into(), Value::bool_from_str("TrUe").unwrap()),
-           ("prop2".into(), Value::bool_from_str("FALSE").unwrap()),
-           ("prop3".into(), Value::bool_from_str("truE").unwrap()),
-           ("prop4".into(), Value::bool_from_str("false").unwrap())]
-    )));
-    p.set_value("car.drivers", Value::Array(Rc::new(
-      vec![Value::int(1), Value::int(2), Value::int(3), Value::int(4),
-      Value::int(5), Value::int(6), Value::int(7), Value::int(8)]
-    )));
-    p.set_value("car.model", Value::literal_string("Accord").unwrap());
-    p.set_value("animal", Value::ml_basic_string("shark").unwrap());
-    assert_eq!(r#"animal = """shark"""
+  p.set_value("car.interior.seats.type", Value::basic_string("leather").unwrap());
+  p.set_value("car.interior.seats.type", Value::basic_string("vinyl").unwrap());
+  p.set_value("car.owners[0].Age", Value::float_from_str("19.5").unwrap());
+  p.set_value("car.owners[1].Name", Value::ml_basic_string("Steve Parker").unwrap());
+  p.set_value("car.drivers[4].banned", Value::datetime_from_int(2013, 9, 23, 17, 34, 2).unwrap());
+  p.set_value("car.properties.color", Value::int(19));
+  p.set_value("car.properties.accident_dates[2]", Value::float(3443.34));
+  p.set_value("car.drivers[1]", Value::ml_literal_string("Mark").unwrap());
+  p.set_value("car.properties", Value::InlineTable(Rc::new(
+    vec![("make".into(), Value::literal_string("Honda").unwrap()),
+          ("transmission".into(), Value::bool(true))]
+  )));
+  p.set_value("car.drivers", Value::Array(Rc::new(
+    vec![Value::basic_string("Phil").unwrap(), Value::basic_string("Mary").unwrap()]
+  )));
+  p.set_value("car.properties", Value::InlineTable(Rc::new(
+    vec![("prop1".into(), Value::bool_from_str("TrUe").unwrap()),
+          ("prop2".into(), Value::bool_from_str("FALSE").unwrap()),
+          ("prop3".into(), Value::bool_from_str("truE").unwrap()),
+          ("prop4".into(), Value::bool_from_str("false").unwrap())]
+  )));
+  p.set_value("car.drivers", Value::Array(Rc::new(
+    vec![Value::int(1), Value::int(2), Value::int(3), Value::int(4),
+    Value::int(5), Value::int(6), Value::int(7), Value::int(8)]
+  )));
+  p.set_value("car.model", Value::literal_string("Accord").unwrap());
+  p.set_value("animal", Value::ml_basic_string("shark").unwrap());
+  assert_eq!(r#"animal = """shark"""
 
 [[car.owners]]
 Name = """Bob Jones"""
@@ -81,7 +81,7 @@ model = 'Accord'
 drivers = [1, 2, 3, 4, 5, 6, 7, 8]
 properties = { prop1 = true, prop2 = false, prop3 = true, prop4 = false }
 "#, format!("{}", p));
-  }
+}
 
 struct TT;
 impl TT {
@@ -125,19 +125,18 @@ fn test_mixed_tables() {
   assert!(result == ParseResult::Full, "Parse of mixed tables document had errors when it shouldn't have.");
 }
 
-fn check_errors(parser: &TOMLParser, result: &ParseResult) -> (bool, String){
-  let mut get_errors = false;
+fn check_errors(result: &ParseResult) -> (bool, String) {
   let mut leftover = "".to_string();
+  let mut opt_errors: Option<&Rc<RefCell<Vec<ParseError>>>> = None;
   match result {
-    &ParseResult::FullError => {get_errors = true;},
+    &ParseResult::FullError(ref e) => {opt_errors = Some(e);},
     &ParseResult::Partial(ref l,_,_) => {leftover = l.clone().into_owned();},
-    &ParseResult::PartialError(ref l,_,_) => {get_errors = true; leftover = l.clone().into_owned();},
+    &ParseResult::PartialError(ref l,_,_,ref e) => {opt_errors = Some(e); leftover = l.clone().into_owned();},
     &ParseResult::Failure(ref line,_) => {assert!(false, "failed at line number: {}", line);},
     _ => (),
   }
   let mut full_error = "".to_string();
-  if get_errors {
-    let errors = parser.get_errors();
+  if let Some(errors) = opt_errors {
     for error in errors.borrow().iter() {
       match error {
         &ParseError::MixedArray(ref key, _, _) => full_error.push_str(&format!("MixedArray error: {}\n", key)),
@@ -148,7 +147,6 @@ fn check_errors(parser: &TOMLParser, result: &ParseResult) -> (bool, String){
       }
     }
   }
-  parser.print_keys_and_values_debug();
   if leftover != "" {
     full_error.push_str(&format!("$$ Leftover =\n\"{}\"", leftover));
     return (false, full_error);
@@ -161,15 +159,19 @@ fn test_mixed_mixed_array_fail() {
   let _ = env_logger::init();
 
   let parser = TOMLParser::new();
-  let (parser, result) = parser.parse(r#"[[foo."bar"]]
+  let (_, result) = parser.parse(r#"[[foo."bar"]]
 baz = 2016-03-10T12:31:02+07:30
 qux = """ƒáβúℓôúƨ δïñôƨáúř"""
 array = [1, 2, {you = ["good", """bye"""], fire = "truck"}, 3]
 [owner]
 a_key = "a value"
 "#);
-  assert!(check_errors(&parser, &result).0, "There should have been a mixed array error, but there wasn't.");
-  let errors = parser.get_errors();
+  assert!(check_errors(&result).0, "There should have been a mixed array error, but there wasn't.");
+  let errors = match result {
+    ParseResult::FullError(e) => e,
+    ParseResult::PartialError(_,_,_,e) => e,
+    _ => panic!("There should have been a mixed array error, but there wasn't."),
+  };
   let error = &errors.borrow()[0];
   if let &ParseError::MixedArray(ref key, line, _col) = error {
     assert!(key == "foo.\"bar\"[0].array" && line == 4,
@@ -185,14 +187,18 @@ fn test_mixed_mixed_array_in_inline_table_fail() {
   let _ = env_logger::init();
 
   let parser = TOMLParser::new();
-  let (parser, result) = parser.parse(r#"[foo.quality.machine.parts.service]
+  let (_, result) = parser.parse(r#"[foo.quality.machine.parts.service]
 "ƥèřïôδ" = 24.7
 "inline table" = { drink = 5.5, meal = [ 6, { start = 1980-05-14, end = 2002-10-19 } ], dessert = '''cake''' }
 [owner]
 a_key = "a value"
 "#);
-  assert!(check_errors(&parser, &result).0, "There should have been a mixed array error, but there wasn't.");
-  let errors = parser.get_errors();
+  assert!(check_errors(&result).0, "There should have been a mixed array error, but there wasn't.");
+  let errors = match result {
+    ParseResult::FullError(e) => e,
+    ParseResult::PartialError(_,_,_,e) => e,
+    _ => panic!("There should have been a mixed array error, but there wasn't."),
+  };
   let error = &errors.borrow()[0];
   if let &ParseError::MixedArray(ref key, line, _col) = error {
     assert!(key == "foo.quality.machine.parts.service.\"inline table\".meal" && line == 3,
@@ -362,7 +368,7 @@ fn test_invalid_table_fail() {
   let _ = env_logger::init();
 
   let parser = TOMLParser::new();
-  let (parser, result) = parser.parse(r#"[foo.quality]
+  let (_, result) = parser.parse(r#"[foo.quality]
 "ƥèřïôδ" = 24.7
 [owner]
 a_key = "a value"
@@ -370,8 +376,12 @@ a_key = "a value"
 KEYONE = "VALUEONE"
 KEYTWO = "VALUETWO"
 "#);
-  assert!(check_errors(&parser, &result).0, "There should have been an invalid table error, but there wasn't.");
-  let errors = parser.get_errors();
+  assert!(check_errors(&result).0, "There should have been an invalid table error, but there wasn't.");
+  let errors = match result {
+    ParseResult::FullError(e) => e,
+    ParseResult::PartialError(_,_,_,e) => e,
+    _ => panic!("There should have been an invalid table error, but there wasn't."),
+  };
   let error = &errors.borrow()[0];
   if let &ParseError::InvalidTable(ref key, line, _col, ref rc_hm) = error {
     assert!(key == "foo.quality" && line == 5,
@@ -389,7 +399,7 @@ fn test_duplicate_key_fail() {
   let _ = env_logger::init();
 
   let parser = TOMLParser::new();
-  let (parser, result) = parser.parse(r#"[foo.quality]
+  let (_, result) = parser.parse(r#"[foo.quality]
 "ƥèřïôδ" = 24.7
 [owner]
 a_key = "a value"
@@ -397,8 +407,12 @@ a_key = 'ANOTHER VALUE'
 [foo.quality]
 KEYONE = "VALUEONE"
 "#);
-  assert!(check_errors(&parser, &result).0, "There should have been a duplicate key error, but there wasn't.");
-  let errors = parser.get_errors();
+  assert!(check_errors(&result).0, "There should have been a duplicate key error, but there wasn't.");
+  let errors = match result {
+    ParseResult::FullError(e) => e,
+    ParseResult::PartialError(_,_,_,e) => e,
+    _ => panic!("There should have been a duplicate key error, but there wasn't."),
+  };
   let error = &errors.borrow()[0];
   if let &ParseError::DuplicateKey(ref key, line, _col, ref val) = error {
     assert!(key == "owner.a_key" && line == 5,
@@ -415,7 +429,7 @@ fn test_invalid_datetime_fail() {
   let _ = env_logger::init();
 
   let parser = TOMLParser::new();
-  let (parser, result) = parser.parse(r#"[foo.quality]
+  let (_, result) = parser.parse(r#"[foo.quality]
 "ƥèřïôδ" = 24.7
 [owner]
 a_key = "a value"
@@ -423,8 +437,12 @@ b_key = 2010-02-29T03:03:03.3333Z
 [foo.quality]
 KEYONE = "VALUEONE"
 "#);
-  assert!(check_errors(&parser, &result).0, "There should have been an invalid datetime error, but there wasn't.");
-  let errors = parser.get_errors();
+  assert!(check_errors(&result).0, "There should have been an invalid datetime error, but there wasn't.");
+  let errors = match result {
+    ParseResult::FullError(e) => e,
+    ParseResult::PartialError(_,_,_,e) => e,
+    _ => panic!("There should have been an invalid datetime error, but there wasn't."),
+  };
   let error = &errors.borrow()[0];
   if let &ParseError::InvalidDateTime(ref key, line, _col, ref val) = error {
     assert!(key == "owner.b_key" && line == 5 && val == "2010-02-29T03:03:03.3333Z",

@@ -2,7 +2,7 @@ extern crate tomllib;
 #[macro_use] extern crate log;
 extern crate env_logger;
 use std::rc::Rc;
-use tomllib::parser::TOMLParser;
+use tomllib::TOMLParser;
 use tomllib::types::{StrType, Value, TimeOffsetAmount, TimeOffset,
                      DateTime, Date, Time};
 
@@ -148,7 +148,7 @@ enabled = true
  //      ),
  //    ])
  //  ));
-  parser.print_keys_and_values_debug();
+  //parser.print_keys_and_values_debug();
   
   
   println!("before: {}", parser.get_value("title").unwrap());

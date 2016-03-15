@@ -1,7 +1,13 @@
 [package]
 name = "tomllib"
 version = "0.1.0"
-authors = ["Joel Self <joel@dislocal.com>"]
+authors = ["Joel Self <self@jself.com>"]
+description = "A format-preserving TOML file parser and manipulator"
+license = "MIT"
+repository = "https://github.com/joelself/tomllib"
+readme = "README.md"
+#documentation = "http://rust.unhandledexpression.com/tomllib/"
+keywords = ["toml", "parser", "encode", "decode", "nom"]
 
 [dependencies.nom]
 version = "^1.2.0"
