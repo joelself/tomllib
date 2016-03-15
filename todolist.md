@@ -2,7 +2,7 @@
 	- [x] Switch back to using nom now that the new version has been released
   - [x] Logging
   - [x] Add line numbers to errors
-  - [ ] **Add documentation to public enums, structs, functions, methods and macros**
+  - [ ] **Add documentation to public enums, structs, functions, methods and macros** - *In progress*
   - [x] Switch names of TOMLValue and Value
   - [x] Rename Parser to TOMLParser
 

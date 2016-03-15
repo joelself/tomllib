@@ -10,59 +10,179 @@ use std::borrow::Cow;
 use internals::parser::Parser;
 use nom::IResult;
 
+/// Conveys the result of a parse operation on a TOML document
 #[derive(Debug, Eq, PartialEq, Clone)]
 pub enum ParseResult<'a> {
+  /// The entire input was parsed without error.
 	Full,
+  /// The entire input was parsed, but there were errors. Contains an `Rc<RefCell<Vec>>` of `ParseError`s.
 	FullError(Rc<RefCell<Vec<ParseError<'a>>>>),
+  /// Part of the input was parsed successfully without any errors. Contains a `Cow<str>`, with the leftover, unparsed
+  /// input, the line number and column (currently column reporting is unimplemented and will always report `0`) where
+  /// parsing stopped.
 	Partial(Cow<'a, str>, usize, usize),
+  /// Part of the input was parsed successfully with errors. Contains a `Cow<str>`, with the leftover, unparsed input,
+  /// the line number and column (currently column reporting is unimplemented and will always report `0`) where parsing
+  /// stopped, and an `Rc<RefCell<Vec>>` of `ParseError`s.
 	PartialError(Cow<'a, str>, usize, usize, Rc<RefCell<Vec<ParseError<'a>>>>),
+  /// The parser failed to parse any of the input as a complete TOML document. Contains the line number and column
+  /// (currently column reporting is unimplemented and will always report `0`) where parsing stopped.
 	Failure(usize, usize),
 }
 
+/// Represents a non-failure error encountered while parsing a TOML document.
 #[derive(Debug, Eq, PartialEq, Clone)]
 pub enum ParseError<'a> {
+  /// An `Array` containing different types was encountered. Contains the `String` key that points to the `Array` and
+  /// the line number and column (currently column reporting is unimplemented and will always report `0`) where the
+  /// `Array` was found. The `Array` can be retrieved and/or changed by its key using `TOMLParser::get_value` and
+  /// `TOMLParser::set_value` methods.
 	MixedArray(String, usize, usize),
+  /// A duplicate key was encountered. Contains the `String` key that was duplicated in the document, the line number
+  /// and column (currently column reporting is unimplemented and will always report `0`) where the duplicate key was
+  /// found, and the `Value` that the key points to.
 	DuplicateKey(String, usize, usize, Value<'a>),
+  /// An invalid table was encountered. Either the key\[s\] that make up the table are invalid or a duplicate table was
+  /// found. Contains the `String` key of the invalid table, the line number and column (currently column reporting is
+  /// unimplemented and will always report `0`) where the invalid table was found, `RefCell<HashMap<String, Value>>`
+  /// that contains all the keys and values belonging to that table.
 	InvalidTable(String, usize, usize, RefCell<HashMap<String, Value<'a>>>),
+  /// An invalid `DateTime` was encountered. This could be a `DateTime` with:
+  ///
+  /// * 0 for year
+  /// * 0 for month or greater than 12 for month
+  /// * 0 for day or greater than, 28, 29, 30, or 31 for day depending on the month and if the year is a leap year
+  /// * Greater than 23 for hour
+  /// * Greater than 59 for minute
+  /// * Greater than 59 for second
+  /// * Greater than 23 for offset hour
+  /// * Greater than 59 for offset minute
+  ///
+  /// Contains the `String` key of the invalid `DateTime`, the line number and column (currently column reporting is
+  /// unimplemented and will always report `0`) where the invalid `DateTime` was found, and a Cow<str> containing the
+  /// invalid `DateTime` string.
   InvalidDateTime(String, usize, usize, Cow<'a, str>),
+  /// *Currently unimplemented*. Reserved for future use when an integer overflow is detected.
 	IntegerOverflow(String, usize, usize, Cow<'a, str>),
+  /// *Currently unimplemented*. Reserved for future use when an integer underflow is detected.
 	IntegerUnderflow(String, usize, usize, Cow<'a, str>),
+  /// *Currently unimplemented*. Reserved for future use when an invalid integer representation is detected.
 	InvalidInteger(String, usize, usize, Cow<'a, str>),
+  /// *Currently unimplemented*. Reserved for future use when a float value of infinity is detected.
 	Infinity(String, usize, usize, Cow<'a, str>),
+  /// *Currently unimplemented*. Reserved for future use when a float value of negative infinity is detected.
 	NegativeInfinity(String, usize, usize, Cow<'a, str>),
+  /// *Currently unimplemented*. Reserved for future use when a float string conversion to an `f64` would result in a loss
+  /// of precision.
 	LossOfPrecision(String, usize, usize, Cow<'a, str>),
+  /// *Currently unimplemented*. Reserved for future use when an invalid float representation is detected.
 	InvalidFloat(String, usize, usize, Cow<'a, str>),
+  /// *Currently unimplemented*. Reserved for future use when an invalid `true` or `false` string is detected.
   InvalidBoolean(String, usize, usize, Cow<'a, str>),
+  /// *Currently unimplemented*. Reserved for future use when an invalid string representation is detected.
   InvalidString(String, usize, usize, Cow<'a, str>, StrType),
+  /// *Currently unimplemented*. Reserved for future use when new error types are added without resorting to a breaking
+  /// change.
   GenericError(String, usize, usize, Option<Cow<'a, str>>, String),
 }
 
+// Represents the 7 different types of values that can exist in a TOML document.
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum Value<'a> {
+  /// An integer value. Contains a `Cow<str>` representing the integer since integers can contain underscores.
 	Integer(Cow<'a, str>),
+  /// A float value. Contains a `Cow<str>` representing the float since floats can be formatted many different ways and
+  /// can contain underscores.
 	Float(Cow<'a, str>),
+  /// A boolean value. Contains a `bool` value since only `true` and `false` are allowed.
 	Boolean(bool),
+  /// A `DateTime` value. Contains a `DateTime` struct that has a date and optionally a time, fractional seconds, and
+  /// offset from UTC.
 	DateTime(DateTime<'a>),
+  /// A string value. Contains a `Cow<str>` with the string contents (without quotes) and `StrType` indicating whether
+  /// the string is a basic string, multi-line basic string, literal string or multi-line literal string.
 	String(Cow<'a, str>, StrType),
+  /// An array value. Contains an `Rc<Vec>` of `Value`s contained in the `Array`.
 	Array(Rc<Vec<Value<'a>>>),
+  /// An inline table value. Contains an `Rc<Vec>` of tuples that contain a `Cow<str>` representing a key, and `Value`
+  /// that the key points to.
 	InlineTable(Rc<Vec<(Cow<'a, str>, Value<'a>)>>)
 }
 
+/// Represents the 4 different types of strings that are allowed in TOML documents.
 #[derive(Debug, Eq, PartialEq, Copy, Clone)]
 pub enum StrType {
+  /// String is a basic string.
 	Basic,
+  /// String is a multi-line basic string.
 	MLBasic,
+  /// String is a literal string.
 	Literal,
+  /// String is a multi-line literal string.
 	MLLiteral,
 }
 
+/// Represents the child keys of a key in a parsed TOML document.
 #[derive(Debug, Eq, PartialEq, Clone)]
 pub enum Children {
+  /// Contains a `Cell<usize>` with the amount of child keys the key has. The key has children that are indexed with an
+  /// integer starting at 0. `Array`s and array of tables use integer for their child keys. For example:
+  ///
+  /// ```
+  /// Array = ["A", "B", "C", "D", "E"]
+  /// [[array_of_table]]
+  /// key = "val 1"
+  /// [[array_of_table]]
+  /// key = "val 2"
+  /// [[array_of_table]]
+  /// key = "val 3"
+  /// ```
+  ///
+  /// "Array" has 5 children. The key of "D" is "Array[3]" because it is fourth element in "Array" and indexing starts
+  /// at 0.
+  /// "array_of_table" has 3 children. The key of "val 3" is "array_of_table[2].key" because it is in the third
+  /// sub-table of "array_of_table" and indexing starts at 0.
   Count(Cell<usize>),
+  /// Contains a `RefCell<Vec>` of `String`s with every sub-key of the key. The key has children that are indexed with a
+  /// sub-key. Tables and inline-tables use sub-keys for their child keys. For example:
+  ///
+  /// ```
+  /// InlineTable = {subkey1 = "A", subkey2 = "B"}
+  /// [table]
+  /// a_key = "val 1"
+  /// b_key = "val 2"
+  /// c_key = "val 3"
+  /// ```
+  ///
+  /// "InlineTable" has 2 children, "subkey1" and "subkey2". The key of "B" is "InlineTable.subkey2".
+  /// "table" has 3 children, "a_key", "b_key", and "c_key". The key of "val 3" is "table.c_key".
   Keys(RefCell<Vec<String>>)
 }
 
+/// Contains convenience functions to combine base keys with child keys to make a full key.
 impl Children {
+
+  /// Combines string type `base_key` with a string type `child_key` to form a full key.
+  ///
+  /// # Examples
+  ///
+  /// ```
+  /// use tomllib::TOMLParser;
+  /// use tomllib::types::Children;
+  /// let toml_doc = r#"
+  /// [dependencies]
+  /// nom = {version = "^1.2.0", features = ["regexp"]}
+  /// regex = {version = "^0.1.48"}
+  /// log = {version = "^0.3.5"}
+  /// "#;
+  /// let parser = TOMLParser::new();
+  /// let (parser, result) = parser.parse(toml_doc);
+  /// let deps = parser.get_children("dependencies");
+  /// if let Children::Keys(subkeys) = deps.unwrap() {
+  ///   assert_eq!("dependencies.nom",
+  ///     Children::combine_keys("dependencies", &subkeys.borrow()[0]));
+  /// }
+  /// ```
   pub fn combine_keys<S>(base_key: S, child_key: S) -> String where S: Into<String> {
     let mut full_key;
     let base = base_key.into();
@@ -76,9 +196,47 @@ impl Children {
     }
     return full_key;
   }
+
+  /// Combines string type `base_key` with an integer type `child_key` to form a full key.
+  ///
+  /// # Examples
+  ///
+  /// ```
+  /// use tomllib::TOMLParser;
+  /// use tomllib::types::Children;
+  /// let toml_doc = r#"
+  /// keywords = ["toml", "parser", "encode", "decode", "nom"]
+  /// "#;
+  /// let parser = TOMLParser::new();
+  /// let (parser, result) = parser.parse(toml_doc);
+  /// let kw = parser.get_children("keywords");
+  /// if let Children::Count(subkeys) = kw.unwrap() {
+  ///   assert_eq!("keywords[4]", Children::combine_keys("keywords", subkeys.get() - 1));
+  /// }
+  /// # assert!(false);
+  /// ```
   pub fn combine_keys_index<S>(base_key: S, child_key: usize) -> String where S: Into<String> {
     return format!("{}[{}]", base_key.into(), child_key);
   }
+
+  /// Combines string type `base_key` with all subkeys of an instance of `Children` to form a `Vec` of full keys
+  ///
+  /// # Examples
+  ///
+  /// ```
+  /// use tomllib::TOMLParser;
+  /// use tomllib::types::Children;
+  /// let toml_doc = r#"
+  /// keywords = ["toml", "parser"]
+  /// numbers = {first = 1, second = 2}
+  /// "#;
+  /// let parser = TOMLParser::new();
+  /// let (parser, result) = parser.parse(toml_doc);
+  /// let kw = parser.get_children("keywords");
+  /// assert_eq!(vec!["keywords[0]".to_string(), "keywords[1]".to_string()], kw.unwrap().combine_keys("keywords"));
+  /// let num = parser.get_children("numbers");
+  /// assert_eq!(vec!["numbers.first".to_string(), "numbers.second".to_string()], num.unwrap().combine_keys("numbers"));
+  /// ```
   pub fn combine_child_keys<S>(&self, base_key: S) -> Vec<String> where S: Into<String> {
     let mut all_keys = vec![];
     let base = base_key.into();
