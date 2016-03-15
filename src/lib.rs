@@ -55,6 +55,7 @@ impl<'a> TOMLParser<'a> {
   ///
   /// ```
   /// use tomllib::TOMLParser;
+  /// use tomllib::types::Value;
   /// 
   /// let parser = TOMLParser::new();
   /// let toml_doc = r#""A Key" = "A Value"
@@ -65,7 +66,7 @@ impl<'a> TOMLParser<'a> {
   /// "#;
   /// let (parser, result) = parser.parse(toml_doc);
   /// let value1 = parser.get_value("\"A Key\"");
-  /// let value3 = parser.get_value("tables[0].SomeKey");
+  /// let value2 = parser.get_value("tables[0].SomeKey");
   /// let value3 = parser.get_value("tables[0].subtable.AnotherKey");
   /// assert_eq!(value1.unwrap(), Value::basic_string("A Value").unwrap());
   /// assert_eq!(value2.unwrap(), Value::date_from_int(2010, 5, 18).unwrap());
@@ -91,6 +92,7 @@ impl<'a> TOMLParser<'a> {
   /// # Examples
   ///
   /// ```
+  /// #
   /// use tomllib::TOMLParser;
   /// use tomllib::types::Value;
   /// 
@@ -98,8 +100,8 @@ impl<'a> TOMLParser<'a> {
   /// let (mut parser, result) = parser.parse("[table]\nAKey=\"A Value\"");
   /// let success = parser.set_value("table.AKey", Value::Integer("5_000".into()));
   /// assert!(success);
-  /// let value = parser.get_value("AKey");
-  /// assert_eq!(value.unwrap(), Value::int_from_str(5_000).unwrap());
+  /// let value = parser.get_value("table.AKey");
+  /// assert_eq!(value.unwrap(), Value::int_from_str("5_000").unwrap());
   /// ```
   pub fn set_value<S>(self: &mut TOMLParser<'a>, key: S, val: Value<'a>) -> bool where S: Into<String> {
     self.parser.set_value(key, val)
@@ -112,7 +114,10 @@ impl<'a> TOMLParser<'a> {
   ///
   /// ```
   /// use tomllib::TOMLParser;
+  /// use tomllib::types::Children;
+  /// use std::cell::{Cell, RefCell};
   /// 
+  /// let parser = TOMLParser::new();
   /// let toml_doc = r#"
   /// [table]
   /// "A Key" = "A Value"
@@ -124,11 +129,11 @@ impl<'a> TOMLParser<'a> {
   /// "#;
   /// let (parser, result) = parser.parse(toml_doc);
   /// let table_child_keys = parser.get_children("table");
-  /// assert_eq!(table_child_keys.unwrap(), Children::Keys(RefCell::new(vec![
+  /// assert_eq!(*table_child_keys.unwrap(), Children::Keys(RefCell::new(vec![
   ///   "\"A Key\"".to_string(), "SomeKey".to_string(), "AnotherKey".to_string()
   /// ])));
   /// let aot_child_keys = parser.get_children("array_of_tables");
-  /// assert_eq!(aot_child_keys.unwrap(), Children::Count(Cell::new(3)));
+  /// assert_eq!(*aot_child_keys.unwrap(), Children::Count(Cell::new(3)));
   /// ```
   pub fn get_children<S>(self: &TOMLParser<'a>, key: S) -> Option<&Children> where S: Into<String> {
     self.parser.get_children(key)
@@ -152,7 +157,7 @@ impl<'a> TOMLParser<'a> {
 /// let (mut parser, result) = parser.parse(toml_doc);
 /// parser.set_value("table.\"A Key\"", Value::float(9.876));
 /// parser.set_value("table.SomeKey", Value::bool(false));
-/// assert_eq(&format!("{}", parser), r#"
+/// assert_eq!(&format!("{}", parser), r#"
 /// [table] # This is a comment
 ///   "A Key" = 9.876 # This line is indented
 ///     SomeKey = false # This line is indented twice

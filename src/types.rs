@@ -128,7 +128,7 @@ pub enum Children {
   /// Contains a `Cell<usize>` with the amount of child keys the key has. The key has children that are indexed with an
   /// integer starting at 0. `Array`s and array of tables use integer for their child keys. For example:
   ///
-  /// ```
+  /// ```text
   /// Array = ["A", "B", "C", "D", "E"]
   /// [[array_of_table]]
   /// key = "val 1"
@@ -146,7 +146,7 @@ pub enum Children {
   /// Contains a `RefCell<Vec>` of `String`s with every sub-key of the key. The key has children that are indexed with a
   /// sub-key. Tables and inline-tables use sub-keys for their child keys. For example:
   ///
-  /// ```
+  /// ```text
   /// InlineTable = {subkey1 = "A", subkey2 = "B"}
   /// [table]
   /// a_key = "val 1"
@@ -178,7 +178,7 @@ impl Children {
   /// let parser = TOMLParser::new();
   /// let (parser, result) = parser.parse(toml_doc);
   /// let deps = parser.get_children("dependencies");
-  /// if let Children::Keys(subkeys) = deps.unwrap() {
+  /// if let &Children::Keys(ref subkeys) = deps.unwrap() {
   ///   assert_eq!("dependencies.nom",
   ///     Children::combine_keys("dependencies", &subkeys.borrow()[0]));
   /// }
@@ -210,10 +210,12 @@ impl Children {
   /// let parser = TOMLParser::new();
   /// let (parser, result) = parser.parse(toml_doc);
   /// let kw = parser.get_children("keywords");
-  /// if let Children::Count(subkeys) = kw.unwrap() {
-  ///   assert_eq!("keywords[4]", Children::combine_keys("keywords", subkeys.get() - 1));
+  /// if let &Children::Count(ref subkeys) = kw.unwrap() {
+  ///   assert_eq!("keywords[4]", Children::combine_keys_index("keywords", subkeys.get() - 1));
   /// }
-  /// # assert!(false);
+  /// # else {
+  /// #  assert!(false, "{:?}", kw.unwrap());
+  /// # }
   /// ```
   pub fn combine_keys_index<S>(base_key: S, child_key: usize) -> String where S: Into<String> {
     return format!("{}[{}]", base_key.into(), child_key);
@@ -233,9 +235,11 @@ impl Children {
   /// let parser = TOMLParser::new();
   /// let (parser, result) = parser.parse(toml_doc);
   /// let kw = parser.get_children("keywords");
-  /// assert_eq!(vec!["keywords[0]".to_string(), "keywords[1]".to_string()], kw.unwrap().combine_keys("keywords"));
+  /// assert_eq!(vec!["keywords[0]".to_string(), "keywords[1]".to_string()],
+  ///   kw.unwrap().combine_child_keys("keywords"));
   /// let num = parser.get_children("numbers");
-  /// assert_eq!(vec!["numbers.first".to_string(), "numbers.second".to_string()], num.unwrap().combine_keys("numbers"));
+  /// assert_eq!(vec!["numbers.first".to_string(), "numbers.second".to_string()],
+  ///   num.unwrap().combine_child_keys("numbers"));
   /// ```
   pub fn combine_child_keys<S>(&self, base_key: S) -> Vec<String> where S: Into<String> {
     let mut all_keys = vec![];
