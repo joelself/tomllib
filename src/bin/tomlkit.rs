@@ -162,12 +162,12 @@ enabled = true
   parser.set_value("owner.name", Value::String("Joel Self".into(), StrType::MLLiteral));
   parser.set_value("owner.dob", Value::Integer("567".into()));
   parser.set_value("database.connection_max", Value::DateTime(
-    DateTime::new(Date::from_str("03", "04", "2016"),
+    DateTime::new(Date::from_str("03", "04", "2016").unwrap(),
       Some(Time::from_str("09", "34", "15",
         Some("7891"), Some(TimeOffset::Time(
-          TimeOffsetAmount::from_str("-", "09", "30")
+          TimeOffsetAmount::from_str("-", "09", "30").unwrap()
         ))
-      )
+      ).unwrap()
     ))
   ));
   
