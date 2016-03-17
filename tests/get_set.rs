@@ -242,7 +242,7 @@ fn test_basic_get_on_mixed_tables() {
   // Test new parent array of tables
   assert_eq!(Value::float(789.0123), parser.get_value("foo.quality[1].money").unwrap());
   // Test restarting adding tables to previously defined array of tables
-  assert_eq!(Value::datetime_offset_from_int(2016, 3, 10, 12, 31, 2, "+", 7, 30).unwrap(), parser.get_value("foo.\"bar\"[2].baz").unwrap());
+  assert_eq!(Value::datetime_offset_from_int(2016, 3, 10, 12, 31, 2, '+', 7, 30).unwrap(), parser.get_value("foo.\"bar\"[2].baz").unwrap());
   assert_eq!(Value::ml_basic_string("ƒáβúℓôúƨ δïñôƨáúř").unwrap(), parser.get_value("foo.\"bar\"[2].qux").unwrap());
   // Test inline table nested in array
   assert_eq!(Value::int(1), parser.get_value("foo.\"bar\"[2].array[0].one").unwrap());
@@ -319,10 +319,10 @@ fn test_basic_set_then_get_on_mixed_tables() {
   assert!(parser.set_value("foo.quality[0].labor[0].Name", Value::ml_basic_string("TWO").unwrap()));
   assert!(parser.set_value("foo.quality[0].labor[1].Name", Value::ml_literal_string("THREE").unwrap()));
   // Test new parent array of tables set
-  assert!(parser.set_value("foo.quality[1].money", Value::datetime_from_string("2002-03-03T02:02:02.01234-08:35").unwrap()));
+  assert!(parser.set_value("foo.quality[1].money", Value::datetime_parse("2002-03-03T02:02:02.01234-08:35").unwrap()));
   // Test restarting adding tables to previously defined array of tables set
-  assert!(parser.set_value("foo.\"bar\"[2].baz", Value::datetime_from_string("2003-04-04").unwrap()));
-  assert!(parser.set_value("foo.\"bar\"[2].qux", Value::datetime_from_string("2004-05-05T03:03:03").unwrap()));
+  assert!(parser.set_value("foo.\"bar\"[2].baz", Value::datetime_parse("2003-04-04").unwrap()));
+  assert!(parser.set_value("foo.\"bar\"[2].qux", Value::datetime_parse("2004-05-05T03:03:03").unwrap()));
   // Test resetting array
   assert!(parser.set_value("foo.\"bar\"[2].array", Value::Array(Rc::new(vec![
     Value::int(3), Value::int(4), Value::int(5), Value::int(6), Value::int(7)
@@ -351,10 +351,10 @@ fn test_basic_set_then_get_on_mixed_tables() {
   assert_eq!(Value::ml_basic_string("TWO").unwrap(), parser.get_value("foo.quality[0].labor[0].Name").unwrap());
   assert_eq!(Value::ml_literal_string("THREE").unwrap(), parser.get_value("foo.quality[0].labor[1].Name").unwrap());
   // Test new parent array of tables
-  assert_eq!(Value::datetime_from_string("2002-03-03T02:02:02.01234-08:35").unwrap(), parser.get_value("foo.quality[1].money").unwrap());
+  assert_eq!(Value::datetime_parse("2002-03-03T02:02:02.01234-08:35").unwrap(), parser.get_value("foo.quality[1].money").unwrap());
   // Test restarting adding tables to previously defined array of tables
-  assert_eq!(Value::datetime_from_string("2003-04-04").unwrap(), parser.get_value("foo.\"bar\"[2].baz").unwrap());
-  assert_eq!(Value::datetime_from_string("2004-05-05T03:03:03").unwrap(), parser.get_value("foo.\"bar\"[2].qux").unwrap());
+  assert_eq!(Value::datetime_parse("2003-04-04").unwrap(), parser.get_value("foo.\"bar\"[2].baz").unwrap());
+  assert_eq!(Value::datetime_parse("2004-05-05T03:03:03").unwrap(), parser.get_value("foo.\"bar\"[2].qux").unwrap());
   // Test inline table nested in array
   assert_eq!(Value::int(3), parser.get_value("foo.\"bar\"[2].array[0]").unwrap());
   assert_eq!(Value::int(4), parser.get_value("foo.\"bar\"[2].array[1]").unwrap());
