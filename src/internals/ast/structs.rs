@@ -773,8 +773,9 @@ impl<'a> InlineTable<'a> {
 
 #[cfg(test)]
 mod test {
-	use internals::ast::structs::comp_opt;
-	#[test]
+	use internals::ast::structs::{Toml, NLExpression, Expression, WSSep, Comment, comp_opt};
+
+  #[test]
 	fn test_comp_opt() {
   	let (a, b) = (Some("value"), Some("value"));
 		assert!(comp_opt(&a, &b));
@@ -782,6 +783,20 @@ mod test {
 		let c = Some("stuff");
 		assert!(!comp_opt(&c, &d));
 	}
+
+  #[test]
+  fn test_toml() {
+    let _toml = Toml{exprs: vec![NLExpression{
+      nl: "\n".into(), expr: Expression {
+        ws: WSSep{ws1: "".into(), ws2: "".into()},
+        keyval: None,
+        table: None,
+        comment: Some(Comment{
+          text: "hello, this is a comment".into()
+        })
+      }
+    }]};
+  }
 }
 
 
