@@ -1295,7 +1295,6 @@ impl<'a> Date<'a> {
 }
 
 /// Represents the time part of a `DateTime` including optional fractional seconds and timezone offset.
-// <hour>:<minute>:<second>(.<fraction>)?
 #[derive(Debug, Eq, Clone)]
 pub struct Time<'a> {
   /// Represents the hour of the time. Must be 2 decimal digits between 0 and 23 inclusive.
@@ -1419,6 +1418,7 @@ impl<'a> Time<'a> {
   }
 }
 
+/// Represents a`DateTime` including the `Date` and optional `Time`
 #[derive(Debug, Eq, Clone)]
 pub struct DateTime<'a> {
 	pub date: Date<'a>,
@@ -1441,11 +1441,24 @@ impl<'a> Display for DateTime<'a> {
   }
 }
 
+// <hour>:<minute>:<second>(.<fraction>)?
 impl<'a> DateTime<'a> {
 	pub fn new(date: Date<'a>, time: Option<Time<'a>>) -> DateTime<'a> {
 		DateTime{date: date, time: time}
 	}
   
+  /// Validates a created `DateTime`.
+  ///
+  /// # Examples
+  ///
+  /// ```
+  /// use tomllib::types::{DateTime, Date};
+  ///
+  /// let dt_wrong = DateTime{ date: Date{ year: "53456".into(), month: "06".into(), day: "20".into() }, time: None};
+  /// let dt_right = DateTime{ date: Date{ year: "1995".into(), month: "09".into(), day: "13".into() }, time: None};
+  /// assert!(!dt_wrong.validate());
+  /// assert!(dt_right.validate());
+  /// ```
   pub fn validate(&self) -> bool {
     if self.date.validate() {
       if let Some(ref time) = self.time {
