@@ -22,7 +22,7 @@ macro_rules! res2opt(
   ($i:expr) => (
     match $i {
       Result::Ok(t) => Some(t),
-      Result::Err(_) => None,  
+      Result::Err(_) => None,
     }
   );
 );

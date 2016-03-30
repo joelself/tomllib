@@ -2,7 +2,7 @@ use internals::ast::structs::{Toml, NLExpression, Expression, WSSep};
 use internals::parser::Parser;
 
 impl<'a> Parser<'a> {
-  method!(pub toml<Parser<'a>, &'a str, Toml>, mut self,
+    method!(pub toml<Parser<'a>, &'a str, Toml>, mut self,
     chain!(
       expr: call_m!(self.expression)    ~
   nl_exprs: call_m!(self.nl_expressions),
@@ -13,9 +13,9 @@ impl<'a> Parser<'a> {
     )
   );
 
-  method!(nl_expressions<Parser<'a>, &'a str, Vec<NLExpression> >, mut self, many0!(call_m!(self.nl_expression)));
+    method!(nl_expressions<Parser<'a>, &'a str, Vec<NLExpression> >, mut self, many0!(call_m!(self.nl_expression)));
 
-  method!(nl_expression<Parser<'a>, &'a str, NLExpression>, mut self,
+    method!(nl_expression<Parser<'a>, &'a str, NLExpression>, mut self,
     chain!(
        nl: call_m!(self.newline)    ~
      expr: call_m!(self.expression) ,
@@ -25,7 +25,7 @@ impl<'a> Parser<'a> {
     )
   );
 
-  method!(expression<Parser<'a>, &'a str,  Expression>, mut self,
+    method!(expression<Parser<'a>, &'a str,  Expression>, mut self,
     alt!(
       complete!(call_m!(self.table_comment))  |
       complete!(call_m!(self.keyval_comment)) |
@@ -34,7 +34,7 @@ impl<'a> Parser<'a> {
     )
   );
 
-  method!(ws_expr<Parser<'a>, &'a str, Expression>, mut self,
+    method!(ws_expr<Parser<'a>, &'a str, Expression>, mut self,
     chain!(
       ws: call_m!(self.ws),
       ||{
@@ -42,7 +42,7 @@ impl<'a> Parser<'a> {
       }
     ));
 
-  method!(table_comment<Parser<'a>, &'a str, Expression>, mut self,
+    method!(table_comment<Parser<'a>, &'a str, Expression>, mut self,
     chain!(
       ws1: call_m!(self.ws)                 ~
     table: call_m!(self.table)              ~
@@ -54,7 +54,7 @@ impl<'a> Parser<'a> {
     )
   );
 
-  method!(keyval_comment<Parser<'a>, &'a str, Expression>, mut self,
+    method!(keyval_comment<Parser<'a>, &'a str, Expression>, mut self,
     chain!(
       ws1: call_m!(self.ws)       ~
    keyval: call_m!(self.keyval)   ~
@@ -66,7 +66,7 @@ impl<'a> Parser<'a> {
     )
   );
 
-  method!(ws_comment<Parser<'a>, &'a str, Expression>, mut self,
+    method!(ws_comment<Parser<'a>, &'a str, Expression>, mut self,
     chain!(
        ws: call_m!(self.ws)     ~
   comment: call_m!(self.comment),
@@ -79,20 +79,19 @@ impl<'a> Parser<'a> {
 
 #[cfg(test)]
 mod test {
-  use std::rc::Rc;
-  use std::cell::RefCell;
-  use nom::IResult::Done;
-  use internals::parser::Parser;
-  use types::{TimeOffsetAmount, DateTime, Date, Time, TimeOffset, StrType};
-  use internals::ast::structs::{Expression, Comment, WSSep, KeyVal, Table, WSKeySep,
-                     TableType, TOMLValue, NLExpression, ArrayValue, Toml,
-                     Array, CommentOrNewLines};
-  
+    use std::rc::Rc;
+    use std::cell::RefCell;
+    use nom::IResult::Done;
+    use internals::parser::Parser;
+    use types::{TimeOffsetAmount, DateTime, Date, Time, TimeOffset, StrType};
+    use internals::ast::structs::{Expression, Comment, WSSep, KeyVal, Table, WSKeySep, TableType, TOMLValue,
+                                  NLExpression, ArrayValue, Toml, Array, CommentOrNewLines};
 
-  #[test]
-  fn test_toml() {
-    let p = Parser::new();
-    assert_eq!(p.toml(
+
+    #[test]
+    fn test_toml() {
+        let p = Parser::new();
+        assert_eq!(p.toml(
 r#"# Tλïƨ ïƨ á TÓM£ δôçú₥èñƭ.
 
 title = "TÓM£ Éжá₥ƥℓè"
@@ -217,21 +216,21 @@ enabled = true"#).1, Done("",
             None, None
           )
         )
-      ]) 
+      ])
     ));
-  }
+    }
 
-  #[test]
-  fn test_nl_expressions() {
-    let mut p = Parser::new();
-    // allow for zero expressions
-    assert_eq!(p.nl_expressions("aoeunth £ôřè₥ ïƥƨú₥ doℓôř ƨïƭ amet, çônƨèçƭeƭuř áδïƥïscïñϱ èℓïƭ").1,
+    #[test]
+    fn test_nl_expressions() {
+        let mut p = Parser::new();
+        // allow for zero expressions
+        assert_eq!(p.nl_expressions("aoeunth £ôřè₥ ïƥƨú₥ doℓôř ƨïƭ amet, çônƨèçƭeƭuř áδïƥïscïñϱ èℓïƭ").1,
       Done("aoeunth £ôřè₥ ïƥƨú₥ doℓôř ƨïƭ amet, çônƨèçƭeƭuř áδïƥïscïñϱ èℓïƭ", vec![])
     );
-    p = Parser::new();
-    assert_eq!(p.nl_expressions("\n[\"δřá\"]#Mèƨsaϱè\r\nkey=\"value\"#wλïƭeƨƥáçè\n").1,
-      Done(
-        "", vec![
+        p = Parser::new();
+        assert_eq!(p.nl_expressions("\n[\"δřá\"]#Mèƨsaϱè\r\nkey=\"value\"#wλïƭeƨƥáçè\n").1,
+                   Done("",
+                        vec![
           NLExpression::new_str(
             "\n", Expression::new(
               WSSep::new_str("", ""), None, Some(Rc::new(TableType::Standard(Table::new_str(
@@ -257,13 +256,11 @@ enabled = true"#).1, Done("",
               WSSep::new_str("", ""), None, None, None
             )
           )
-        ]
-      )
-    );
-    p = Parser::new();
-    assert_eq!(p.nl_expressions("\n[[NODOTNET.\"NÓJÂVÂ\"]]").1,
-      Done(
-        "", vec![
+        ]));
+        p = Parser::new();
+        assert_eq!(p.nl_expressions("\n[[NODOTNET.\"NÓJÂVÂ\"]]").1,
+                   Done("",
+                        vec![
           NLExpression::new_str(
             "\n", Expression::new(
               WSSep::new_str("", ""), None, Some(Rc::new(TableType::Array(Table::new_str(
@@ -272,15 +269,13 @@ enabled = true"#).1, Done("",
               )))), None
             )
           )
-        ]
-      )
-    );
-  }
-// named!(nl_expression<&'a str, NLExpression>,
-  #[test]
-  fn test_nl_expression() {
-    let p = Parser::new();
-    assert_eq!(p.nl_expression("\r\n   SimpleKey = 1_2_3_4_5     #  áñ áƭƭè₥ƥƭ ƭô δèƒïñè TÓM£\r\n").1,
+        ]));
+    }
+    // named!(nl_expression<&'a str, NLExpression>,
+    #[test]
+    fn test_nl_expression() {
+        let p = Parser::new();
+        assert_eq!(p.nl_expression("\r\n   SimpleKey = 1_2_3_4_5     #  áñ áƭƭè₥ƥƭ ƭô δèƒïñè TÓM£\r\n").1,
       Done("\r\n", NLExpression::new_str(
         "\r\n", Expression::new(
          WSSep::new_str("   ", "     "), Some(KeyVal::new_str(
@@ -290,25 +285,24 @@ enabled = true"#).1, Done("",
         )
       ))
     );
-  }
+    }
 
-  #[test]
-  fn test_expression() {
-    let mut p = Parser::new();
-    assert_eq!(p.expression(" \t[\"δřáƒƭ\".THISKEY  . \tkeythethird] \t#Mèƨƨáϱè Rèƥℓïèδ\n").1,
-      Done("\n",
-        Expression::new(
-          WSSep::new_str(" \t", " \t"), None, Some(Rc::new(TableType::Standard(Table::new_str(
-            WSSep::new_str("", ""), "\"δřáƒƭ\"", vec![
+    #[test]
+    fn test_expression() {
+        let mut p = Parser::new();
+        assert_eq!(p.expression(" \t[\"δřáƒƭ\".THISKEY  . \tkeythethird] \t#Mèƨƨáϱè Rèƥℓïèδ\n").1,
+                   Done("\n",
+                        Expression::new(WSSep::new_str(" \t", " \t"),
+                                        None,
+                                        Some(Rc::new(TableType::Standard(Table::new_str(WSSep::new_str("", ""),
+                                                                                        "\"δřáƒƭ\"",
+                                                                                        vec![
               WSKeySep::new_str(WSSep::new_str("", ""), "THISKEY"),
               WSKeySep::new_str(WSSep::new_str("  ", " \t"), "keythethird")
-            ]
-          )))),
-          Some(Comment::new_str("Mèƨƨáϱè Rèƥℓïèδ"))
-        )
-    ));
-    p = Parser::new();
-    assert_eq!(p.expression("\t\t\t\"řúññïñϱôúƭôƒωôřδƨ\" = 0.1  #Â₥èřïçáñ Éжƥřèƨƨ\n").1,
+            ])))),
+                                        Some(Comment::new_str("Mèƨƨáϱè Rèƥℓïèδ")))));
+        p = Parser::new();
+        assert_eq!(p.expression("\t\t\t\"řúññïñϱôúƭôƒωôřδƨ\" = 0.1  #Â₥èřïçáñ Éжƥřèƨƨ\n").1,
       Done("\n",
         Expression::new(
           WSSep::new_str("\t\t\t", "  "), Some(KeyVal::new_str(
@@ -317,61 +311,61 @@ enabled = true"#).1, Done("",
           None, Some(Comment::new_str("Â₥èřïçáñ Éжƥřèƨƨ"))
         )
       ));
-    p = Parser::new();
-    assert_eq!(p.expression("\t \t #Þℓèáƨè Ʋèřïƒ¥ Your áççôúñƭ\n").1, Done("\n",
-      Expression::new(
-        WSSep::new_str("\t \t ", ""), None, None, Some(Comment::new_str("Þℓèáƨè Ʋèřïƒ¥ Your áççôúñƭ"))
-      )
-    ));
-    p = Parser::new();
-    assert_eq!(p.expression("\t  \t  \t\n").1, Done("\n",
-      Expression::new(
-        WSSep::new_str("\t  \t  \t", ""), None, None, None,
-      )));
-  }
+        p = Parser::new();
+        assert_eq!(p.expression("\t \t #Þℓèáƨè Ʋèřïƒ¥ Your áççôúñƭ\n").1,
+                   Done("\n",
+                        Expression::new(WSSep::new_str("\t \t ", ""),
+                                        None,
+                                        None,
+                                        Some(Comment::new_str("Þℓèáƨè Ʋèřïƒ¥ Your áççôúñƭ")))));
+        p = Parser::new();
+        assert_eq!(p.expression("\t  \t  \t\n").1,
+                   Done("\n", Expression::new(WSSep::new_str("\t  \t  \t", ""), None, None, None)));
+    }
 
-  #[test]
-  fn test_ws_expr() {
-    let p = Parser::new();
-    assert_eq!(p.ws_expr("  \t \t \n").1, Done("\n", 
-      Expression::new(WSSep::new_str("  \t \t ", ""), None, None, None)
-    ));
-  }
+    #[test]
+    fn test_ws_expr() {
+        let p = Parser::new();
+        assert_eq!(p.ws_expr("  \t \t \n").1,
+                   Done("\n", Expression::new(WSSep::new_str("  \t \t ", ""), None, None, None)));
+    }
 
-  #[test]
-  fn test_table_comment() {
-    let p = Parser::new();
-    assert_eq!(p.table_comment(" [table.\"ƭáβℓè\"] #úñïçôřñřôβôƭ\n").1,
-      Done("\n",
-        Expression::new(WSSep::new_str(" ", " "), None, Some(Rc::new(TableType::Standard(Table::new_str(
-            WSSep::new_str("", ""), "table", vec![
+    #[test]
+    fn test_table_comment() {
+        let p = Parser::new();
+        assert_eq!(p.table_comment(" [table.\"ƭáβℓè\"] #úñïçôřñřôβôƭ\n").1,
+                   Done("\n",
+                        Expression::new(WSSep::new_str(" ", " "),
+                                        None,
+                                        Some(Rc::new(TableType::Standard(Table::new_str(WSSep::new_str("", ""),
+                                                                                        "table",
+                                                                                        vec![
               WSKeySep::new_str(WSSep::new_str("", ""), "\"ƭáβℓè\"")
-            ]
-          )))),
-          Some(Comment::new_str("úñïçôřñřôβôƭ"))
-        )
-    ));
-  }
+            ])))),
+                                        Some(Comment::new_str("úñïçôřñřôβôƭ")))));
+    }
 
-  #[test]
-  fn test_keyval_comment() {
-    let p = Parser::new();
-    assert_eq!(p.keyval_comment(" \"Tôƭáℓℓ¥\" = true\t#λèřè ïƨ ₥¥ çô₥₥èñƭ\n").1,
-      Done("\n",
-        Expression::new(WSSep::new_str(" ", "\t"), Some(KeyVal::new_str(
-            "\"Tôƭáℓℓ¥\"", WSSep::new_str(" ", " "), Rc::new(RefCell::new(TOMLValue::Boolean(true)))
-          )),
-          None, Some(Comment::new_str("λèřè ïƨ ₥¥ çô₥₥èñƭ"))
-        )
-    ));
-  }
+    #[test]
+    fn test_keyval_comment() {
+        let p = Parser::new();
+        assert_eq!(p.keyval_comment(" \"Tôƭáℓℓ¥\" = true\t#λèřè ïƨ ₥¥ çô₥₥èñƭ\n").1,
+                   Done("\n",
+                        Expression::new(WSSep::new_str(" ", "\t"),
+                                        Some(KeyVal::new_str("\"Tôƭáℓℓ¥\"",
+                                                             WSSep::new_str(" ", " "),
+                                                             Rc::new(RefCell::new(TOMLValue::Boolean(true))))),
+                                        None,
+                                        Some(Comment::new_str("λèřè ïƨ ₥¥ çô₥₥èñƭ")))));
+    }
 
-  #[test]
-  fn test_ws_comment() {
-    let p = Parser::new();
-    assert_eq!(p.ws_comment(" \t #This is RÂNÐÓM §TRÌNG\n").1, Done("\n",
-      Expression::new(WSSep::new_str(" \t ", ""), None, None, Some(Comment::new_str("This is RÂNÐÓM §TRÌNG"))
-      )
-    ));
-  }
+    #[test]
+    fn test_ws_comment() {
+        let p = Parser::new();
+        assert_eq!(p.ws_comment(" \t #This is RÂNÐÓM §TRÌNG\n").1,
+                   Done("\n",
+                        Expression::new(WSSep::new_str(" \t ", ""),
+                                        None,
+                                        None,
+                                        Some(Comment::new_str("This is RÂNÐÓM §TRÌNG")))));
+    }
 }

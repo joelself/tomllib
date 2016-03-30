@@ -1,6 +1,5 @@
-use internals::ast::structs::{TableType, WSKeySep, Table, CommentNewLines,
-  CommentOrNewLines, ArrayValue, Array, TOMLValue, InlineTable, WSSep,
-  TableKeyVal, ArrayType, HashValue, format_tt_keys};
+use internals::ast::structs::{TableType, WSKeySep, Table, CommentNewLines, CommentOrNewLines, ArrayValue, Array,
+                              TOMLValue, InlineTable, WSSep, TableKeyVal, ArrayType, HashValue, format_tt_keys};
 use internals::parser::Parser;
 use internals::primitives::Key;
 use types::{ParseError, Children};
@@ -13,198 +12,209 @@ use nom::IResult;
 
 #[inline(always)]
 fn map_val_to_array_type(val: &TOMLValue) -> ArrayType {
-  match val {
-    &TOMLValue::Integer(_)        => ArrayType::Integer,
-    &TOMLValue::Float(_)          => ArrayType::Float,
-    &TOMLValue::Boolean(_)        => ArrayType::Boolean,
-    &TOMLValue::DateTime(_)       => ArrayType::DateTime,
-    &TOMLValue::Array(_)          => ArrayType::Array,
-    &TOMLValue::String(_,_)       => ArrayType::String,
-    &TOMLValue::InlineTable(_)    => ArrayType::InlineTable,
-    &TOMLValue::Table             => panic!("Cannot have a table in an array"),
-  }
+    match val {
+        &TOMLValue::Integer(_) => ArrayType::Integer,
+        &TOMLValue::Float(_) => ArrayType::Float,
+        &TOMLValue::Boolean(_) => ArrayType::Boolean,
+        &TOMLValue::DateTime(_) => ArrayType::DateTime,
+        &TOMLValue::Array(_) => ArrayType::Array,
+        &TOMLValue::String(_, _) => ArrayType::String,
+        &TOMLValue::InlineTable(_) => ArrayType::InlineTable,
+        &TOMLValue::Table => panic!("Cannot have a table in an array"),
+    }
 }
 
 impl<'a> Parser<'a> {
-  
-  pub fn insert(vector: &RefCell<Vec<String>>, insert: String) -> bool {
-    for s in vector.borrow().iter() {
-      if s == &insert {
-        return false;
-      }
-    }
-    vector.borrow_mut().push(insert);
-    return true;
-  }
-  
-  fn contains(vector: &RefCell<Vec<String>>, find: &str) -> bool {
-    for s in vector.borrow().iter() {
-      if s == find {
-        return true;
-      }
-    }
-    return false;
-  }
-
-  fn is_top_std_table(tables: &RefCell<Vec<Rc<TableType<'a>>>>) -> bool {
-    if tables.borrow().len() ==  0 {
-      return false;
-    } else {
-      let len = tables.borrow().len();
-      if let TableType::Standard(_) = *tables.borrow()[len - 1] {
-        return true;
-      } else {
-        return false;
-      }
-    }
-  }
-
-  fn equal_key_length(table: Rc<TableType<'a>>, tables: &RefCell<Vec<Rc<TableType<'a>>>>) -> bool {
-    if tables.borrow().len() ==  0 {
-      return false;
-    } else {
-      match *table {
-        TableType::Array(ref t1) | TableType::Standard(ref t1) => {
-          let len = tables.borrow().len();
-          match *tables.borrow()[len - 1] {
-            TableType::Array(ref t2) | TableType::Standard(ref t2) => {
-              return t1.keys.len() == t2.keys.len();
+    pub fn insert(vector: &RefCell<Vec<String>>, insert: String) -> bool {
+        for s in vector.borrow().iter() {
+            if s == &insert {
+                return false;
             }
-          }
         }
-      }
+        vector.borrow_mut().push(insert);
+        return true;
     }
-  }
 
-  fn add_implicit_tables(map: &RefCell<&mut HashMap<String, HashValue<'a>>>,
-    tables: &RefCell<Vec<Rc<TableType<'a>>>>,
-    tables_index: &RefCell<Vec<usize>>, table: Rc<TableType<'a>>) {
-    let (valid, mut last_key, _) = Parser::get_array_table_key(map, tables, tables_index);
-    if !valid {
-      return;
-    }
-    let mut len = tables.borrow().len();
-    let mut pop = false;
-    if len == 0 {
-      tables.borrow_mut().push(Rc::new(TableType::Standard(
-        Table::new_str(WSSep::new_str("", ""), "$Root$", vec![])
-      )));
-      pop = true;
-      len = 1;
-      last_key.push_str("$Root$");
-    }
-    match *tables.borrow()[len - 1] {
-      TableType::Array(ref last_at) | TableType::Standard(ref last_at) => {
-        match *table {
-          TableType::Array(ref tb) | TableType::Standard(ref tb) => {
-            let mut first = true;
-            debug!("last_at.keys.len(): {}, tb.keys.len(): {}", last_at.keys.len(), tb.keys.len());
-            for i in 0..last_at.keys.len() {
-              debug!("key {}: {}", i, last_at.keys[i].key);
+    fn contains(vector: &RefCell<Vec<String>>, find: &str) -> bool {
+        for s in vector.borrow().iter() {
+            if s == find {
+                return true;
             }
-            let mut start = last_at.keys.len();
-            if last_key == "$Root$" {
-              start -= 1;
-            }
-            for i in start..tb.keys.len() {
-              let mut borrow = map.borrow_mut();
-              let mut insert = false;
-              debug!("index: {}, last_key: {}", i, last_key);
-              if let Entry::Occupied(mut o) = borrow.entry(last_key.clone()) {
-                if first {
-
-                  insert = match &o.get_mut().subkeys {
-                    &Children::Keys(ref vec_rf) => {debug!("Inserting subkey: {}", tb.keys[i].key); Parser::insert(vec_rf, tb.keys[i].key.clone().into_owned())},
-                    &Children::Count(ref cell) => { debug!("Incrementing subkey count: {}", cell.get() + 1); cell.set(cell.get() + 1); true },
-                  };
-                  first = false;
-                } else {
-                  debug!("Inserting subkey: {}", tb.keys[i].key);
-                  insert = match &o.get_mut().subkeys {
-                    &Children::Keys(ref vec_rf) => Parser::insert(vec_rf, tb.keys[i].key.clone().into_owned()),
-                    _ => panic!("Implicit tables can only be Standard Tables: \"{}\"", format!("{}.{}", last_key, tb.keys[i].key)),
-                  };
-                }
-              }
-              if i < tb.keys.len() - 1 {
-                if last_key != "$Root$" {
-                  last_key.push_str(".");
-                } else {
-                  last_key.truncate(0);
-                }
-                last_key.push_str(&tb.keys[i].key);
-                if insert {
-                  debug!("insert last_key {}", last_key);
-                  if i == tb.keys.len() - 1 {
-                    if let TableType::Array(_) = *table {
-                      borrow.insert(last_key.clone(), HashValue::one_count());
-                    } else {
-                      borrow.insert(last_key.clone(), HashValue::none_keys());
-                    }
-                  } else {
-                    borrow.insert(last_key.clone(), HashValue::none_keys());
-                  }
-                }
-              }
-            }
-          },
         }
-      }
+        return false;
     }
-    if pop {
-      tables.borrow_mut().pop();
-    }
-    debug!("Returning from add_implicit_tables");
-  }
 
-  fn increment_array_table_index(map: &RefCell<&mut HashMap<String, HashValue<'a>>>,
-    tables: &RefCell<Vec<Rc<TableType<'a>>>>, tables_index: &RefCell<Vec<usize>>,) {
-    let parent_key = Parser::get_key_parent(tables, tables_index);
-    debug!("increment_array_table_index: {}", parent_key);
-    let mut borrow = map.borrow_mut();
-    let entry = borrow.entry(parent_key);
-    if let Entry::Occupied(mut o) = entry {
-      if let &Children::Count(ref c) = &o.get_mut().subkeys {
-         c.set(c.get() + 1);
-      }
-    }
-    let len = tables_index.borrow().len();
-    let last_index = tables_index.borrow()[len - 1];
-    tables_index.borrow_mut()[len - 1] = last_index + 1;
-  }
-
-  fn add_to_table_set(map: &RefCell<&mut HashMap<String, HashValue<'a>>>,
-    tables: &RefCell<Vec<Rc<TableType<'a>>>>, tables_index: &RefCell<Vec<usize>>, key: &str) -> bool{
-    let parent_key = Parser::get_key_parent(tables, tables_index);
-    debug!("add_to_table_set: {}", parent_key);
-    let mut borrow = map.borrow_mut();
-    let entry = borrow.entry(parent_key);
-    if let Entry::Occupied(mut o) = entry {
-      if let &Children::Keys(ref keys) = &o.get_mut().subkeys {
-        let contains = Parser::contains(keys, key);
-        if contains {
-          debug!("key already exists");
-          return false;
+    fn is_top_std_table(tables: &RefCell<Vec<Rc<TableType<'a>>>>) -> bool {
+        if tables.borrow().len() == 0 {
+            return false;
         } else {
-          debug!("add_to_table_set--> {}", key);
-          Parser::insert(keys, key.to_string());
+            let len = tables.borrow().len();
+            if let TableType::Standard(_) = *tables.borrow()[len - 1] {
+                return true;
+            } else {
+                return false;
+            }
         }
-      }
     }
-    return true;
-  }
 
-  // Table
-  method!(pub table<Parser<'a>, &'a str, Rc<TableType> >, mut self,
+    fn equal_key_length(table: Rc<TableType<'a>>, tables: &RefCell<Vec<Rc<TableType<'a>>>>) -> bool {
+        if tables.borrow().len() == 0 {
+            return false;
+        } else {
+            match *table {
+                TableType::Array(ref t1) | TableType::Standard(ref t1) => {
+                    let len = tables.borrow().len();
+                    match *tables.borrow()[len - 1] {
+                        TableType::Array(ref t2) | TableType::Standard(ref t2) => {
+                            return t1.keys.len() == t2.keys.len();
+                        },
+                    }
+                },
+            }
+        }
+    }
+
+    fn add_implicit_tables(map: &RefCell<&mut HashMap<String, HashValue<'a>>>,
+                           tables: &RefCell<Vec<Rc<TableType<'a>>>>, tables_index: &RefCell<Vec<usize>>,
+                           table: Rc<TableType<'a>>) {
+        let (valid, mut last_key, _) = Parser::get_array_table_key(map, tables, tables_index);
+        if !valid {
+            return;
+        }
+        let mut len = tables.borrow().len();
+        let mut pop = false;
+        if len == 0 {
+            tables.borrow_mut()
+                  .push(Rc::new(TableType::Standard(Table::new_str(WSSep::new_str("", ""), "$Root$", vec![]))));
+            pop = true;
+            len = 1;
+            last_key.push_str("$Root$");
+        }
+        match *tables.borrow()[len - 1] {
+            TableType::Array(ref last_at) | TableType::Standard(ref last_at) => {
+                match *table {
+                    TableType::Array(ref tb) | TableType::Standard(ref tb) => {
+                        let mut first = true;
+                        debug!("last_at.keys.len(): {}, tb.keys.len(): {}", last_at.keys.len(), tb.keys.len());
+                        for i in 0..last_at.keys.len() {
+                            debug!("key {}: {}", i, last_at.keys[i].key);
+                        }
+                        let mut start = last_at.keys.len();
+                        if last_key == "$Root$" {
+                            start -= 1;
+                        }
+                        for i in start..tb.keys.len() {
+                            let mut borrow = map.borrow_mut();
+                            let mut insert = false;
+                            debug!("index: {}, last_key: {}", i, last_key);
+                            if let Entry::Occupied(mut o) = borrow.entry(last_key.clone()) {
+                                if first {
+
+                                    insert = match &o.get_mut().subkeys {
+                                        &Children::Keys(ref vec_rf) => {
+                                            debug!("Inserting subkey: {}", tb.keys[i].key);
+                                            Parser::insert(vec_rf, tb.keys[i].key.clone().into_owned())
+                                        },
+                                        &Children::Count(ref cell) => {
+                                            debug!("Incrementing subkey count: {}", cell.get() + 1);
+                                            cell.set(cell.get() + 1);
+                                            true
+                                        },
+                                    };
+                                    first = false;
+                                } else {
+                                    debug!("Inserting subkey: {}", tb.keys[i].key);
+                                    insert = match &o.get_mut().subkeys {
+                                        &Children::Keys(ref vec_rf) => {
+                                            Parser::insert(vec_rf, tb.keys[i].key.clone().into_owned())
+                                        },
+                                        _ => {
+                                            panic!("Implicit tables can only be Standard Tables: \"{}\"",
+                                                   format!("{}.{}", last_key, tb.keys[i].key))
+                                        },
+                                    };
+                                }
+                            }
+                            if i < tb.keys.len() - 1 {
+                                if last_key != "$Root$" {
+                                    last_key.push_str(".");
+                                } else {
+                                    last_key.truncate(0);
+                                }
+                                last_key.push_str(&tb.keys[i].key);
+                                if insert {
+                                    debug!("insert last_key {}", last_key);
+                                    if i == tb.keys.len() - 1 {
+                                        if let TableType::Array(_) = *table {
+                                            borrow.insert(last_key.clone(), HashValue::one_count());
+                                        } else {
+                                            borrow.insert(last_key.clone(), HashValue::none_keys());
+                                        }
+                                    } else {
+                                        borrow.insert(last_key.clone(), HashValue::none_keys());
+                                    }
+                                }
+                            }
+                        }
+                    },
+                }
+            },
+        }
+        if pop {
+            tables.borrow_mut().pop();
+        }
+        debug!("Returning from add_implicit_tables");
+    }
+
+    fn increment_array_table_index(map: &RefCell<&mut HashMap<String, HashValue<'a>>>,
+                                   tables: &RefCell<Vec<Rc<TableType<'a>>>>, tables_index: &RefCell<Vec<usize>>) {
+        let parent_key = Parser::get_key_parent(tables, tables_index);
+        debug!("increment_array_table_index: {}", parent_key);
+        let mut borrow = map.borrow_mut();
+        let entry = borrow.entry(parent_key);
+        if let Entry::Occupied(mut o) = entry {
+            if let &Children::Count(ref c) = &o.get_mut().subkeys {
+                c.set(c.get() + 1);
+            }
+        }
+        let len = tables_index.borrow().len();
+        let last_index = tables_index.borrow()[len - 1];
+        tables_index.borrow_mut()[len - 1] = last_index + 1;
+    }
+
+    fn add_to_table_set(map: &RefCell<&mut HashMap<String, HashValue<'a>>>, tables: &RefCell<Vec<Rc<TableType<'a>>>>,
+                        tables_index: &RefCell<Vec<usize>>, key: &str)
+                        -> bool {
+        let parent_key = Parser::get_key_parent(tables, tables_index);
+        debug!("add_to_table_set: {}", parent_key);
+        let mut borrow = map.borrow_mut();
+        let entry = borrow.entry(parent_key);
+        if let Entry::Occupied(mut o) = entry {
+            if let &Children::Keys(ref keys) = &o.get_mut().subkeys {
+                let contains = Parser::contains(keys, key);
+                if contains {
+                    debug!("key already exists");
+                    return false;
+                } else {
+                    debug!("add_to_table_set--> {}", key);
+                    Parser::insert(keys, key.to_string());
+                }
+            }
+        }
+        return true;
+    }
+
+    // Table
+    method!(pub table<Parser<'a>, &'a str, Rc<TableType> >, mut self,
     alt!(
       complete!(call_m!(self.array_table)) |
       complete!(call_m!(self.std_table))
     )
   );
 
-  method!(table_subkeys<Parser<'a>, &'a str, Vec<WSKeySep> >, mut self, many0!(call_m!(self.table_subkey)));
+    method!(table_subkeys<Parser<'a>, &'a str, Vec<WSKeySep> >, mut self, many0!(call_m!(self.table_subkey)));
 
-  method!(table_subkey<Parser<'a>, &'a str, WSKeySep>, mut self,
+    method!(table_subkey<Parser<'a>, &'a str, WSKeySep>, mut self,
     chain!(
       ws1: call_m!(self.ws)         ~
            tag_s!(".")~
@@ -212,11 +222,11 @@ impl<'a> Parser<'a> {
       key: call_m!(self.key)        ,
       ||{
         WSKeySep::new_str(WSSep::new_str(ws1, ws2), key)
-      } 
+      }
     )
   );
-  // Standard Table
-  method!(std_table<Parser<'a>, &'a str, Rc<TableType> >, mut self,
+    // Standard Table
+    method!(std_table<Parser<'a>, &'a str, Rc<TableType> >, mut self,
     chain!(
            tag_s!("[")    ~
       ws1: call_m!(self.ws)             ~
@@ -340,8 +350,8 @@ impl<'a> Parser<'a> {
     )
   );
 
-  //Array Table
-  method!(array_table<Parser<'a>, &'a str, Rc<TableType> >, mut self,
+    // Array Table
+    method!(array_table<Parser<'a>, &'a str, Rc<TableType> >, mut self,
     chain!(
            tag_s!("[[")   ~
       ws1: call_m!(self.ws)             ~
@@ -447,8 +457,8 @@ impl<'a> Parser<'a> {
     )
   );
 
-  // Array
-  method!(array_sep<Parser<'a>, &'a str, WSSep>, mut self,
+    // Array
+    method!(array_sep<Parser<'a>, &'a str, WSSep>, mut self,
     chain!(
       ws1: call_m!(self.ws)         ~
            tag_s!(",")~
@@ -459,9 +469,9 @@ impl<'a> Parser<'a> {
     )
   );
 
-  method!(ws_newline<Parser<'a>, &'a str, &'a str>, self, re_find!("^( |\t|\n|(\r\n))*"));
+    method!(ws_newline<Parser<'a>, &'a str, &'a str>, self, re_find!("^( |\t|\n|(\r\n))*"));
 
-  method!(comment_nl<Parser<'a>, &'a str, CommentNewLines>, mut self,
+    method!(comment_nl<Parser<'a>, &'a str, CommentNewLines>, mut self,
     chain!(
    prewsnl: call_m!(self.ws_newline)  ~
    comment: call_m!(self.comment)     ~
@@ -472,17 +482,17 @@ impl<'a> Parser<'a> {
     )
   );
 
-  method!(comment_or_nl<Parser<'a>, &'a str, CommentOrNewLines>, mut self,
+    method!(comment_or_nl<Parser<'a>, &'a str, CommentOrNewLines>, mut self,
     alt!(
       complete!(call_m!(self.comment_nl))   => {|com| CommentOrNewLines::Comment(com)} |
       complete!(call_m!(self.ws_newline))  => {|nl: &'a str|  CommentOrNewLines::NewLines(nl.into())}
     )
   );
 
-  method!(comment_or_nls<Parser<'a>, &'a str, Vec<CommentOrNewLines> >, mut self,
+    method!(comment_or_nls<Parser<'a>, &'a str, Vec<CommentOrNewLines> >, mut self,
     many1!(call_m!(self.comment_or_nl)));
-  
-  method!(array_value<Parser<'a>, &'a str, ArrayValue>, mut self,
+
+    method!(array_value<Parser<'a>, &'a str, ArrayValue>, mut self,
         chain!(
           val: call_m!(self.val)                        ~
     array_sep: complete!(call_m!(self.array_sep))?      ~
@@ -525,7 +535,7 @@ impl<'a> Parser<'a> {
         )
   );
 
-  method!(array_values<Parser<'a>, &'a str, Vec<ArrayValue> >, mut self,
+    method!(array_values<Parser<'a>, &'a str, Vec<ArrayValue> >, mut self,
     chain!(
      vals: many0!(call_m!(self.array_value)) ,
      ||{
@@ -537,19 +547,19 @@ impl<'a> Parser<'a> {
     )
   );
 
-  pub fn array(mut self: Parser<'a>, input: &'a str) -> (Parser<'a>, IResult<&'a str, Rc<RefCell<Array>>>) {
-    // Initialize last array type to None, we need a stack because arrays can be nested
-    //debug!("*** array called on input:\t\t\t{}", input);
-    self.last_array_type.borrow_mut().push(ArrayType::None);
-    self.keychain.borrow_mut().push(Key::Index(Cell::new(0)));
-    let (tmp, res) = self.array_internal(input);
-    self = tmp; // Restore self
-    self.keychain.borrow_mut().pop();
-    self.last_array_type.borrow_mut().pop();
-    (self, res)
-  }
+    pub fn array(mut self: Parser<'a>, input: &'a str) -> (Parser<'a>, IResult<&'a str, Rc<RefCell<Array>>>) {
+        // Initialize last array type to None, we need a stack because arrays can be nested
+        // debug!("*** array called on input:\t\t\t{}", input);
+        self.last_array_type.borrow_mut().push(ArrayType::None);
+        self.keychain.borrow_mut().push(Key::Index(Cell::new(0)));
+        let (tmp, res) = self.array_internal(input);
+        self = tmp; // Restore self
+        self.keychain.borrow_mut().pop();
+        self.last_array_type.borrow_mut().pop();
+        (self, res)
+    }
 
-  method!(pub array_internal<Parser<'a>, &'a str, Rc<RefCell<Array>> >, mut self,
+    method!(pub array_internal<Parser<'a>, &'a str, Rc<RefCell<Array>> >, mut self,
     chain!(
               tag_s!("[")                   ~
          cn1: call_m!(self.comment_or_nls)  ~
@@ -564,7 +574,7 @@ impl<'a> Parser<'a> {
     )
   );
 
-  method!(table_keyval<Parser<'a>, &'a str, TableKeyVal>, mut self,
+    method!(table_keyval<Parser<'a>, &'a str, TableKeyVal>, mut self,
         chain!(
        keyval: call_m!(self.keyval)                     ~
    keyval_sep: complete!(call_m!(self.array_sep))?      ~
@@ -575,9 +585,9 @@ impl<'a> Parser<'a> {
         )
   );
 
-  method!(inline_table_keyvals_non_empty<Parser<'a>, &'a str, Vec<TableKeyVal> >, mut self, many0!(call_m!(self.table_keyval)));
+    method!(inline_table_keyvals_non_empty<Parser<'a>, &'a str, Vec<TableKeyVal> >, mut self, many0!(call_m!(self.table_keyval)));
 
-  method!(pub inline_table<Parser<'a>, &'a str, Rc<RefCell<InlineTable>> >, mut self,
+    method!(pub inline_table<Parser<'a>, &'a str, Rc<RefCell<InlineTable>> >, mut self,
     chain!(
            tag_s!("{")                                ~
       ws1: call_m!(self.ws)                                         ~
@@ -597,162 +607,165 @@ impl<'a> Parser<'a> {
 
 #[cfg(test)]
 mod test {
-  use std::rc::Rc;
-  use std::cell::{RefCell, Cell};
-  use nom::IResult::Done;
-  use types::{DateTime, Date, Time, TimeOffset, TimeOffsetAmount, StrType};
-  use internals::parser::Parser;
-  use internals::ast::structs::{Array, ArrayValue, WSSep, TableKeyVal, InlineTable, WSKeySep,
-    KeyVal, CommentNewLines, Comment, CommentOrNewLines, Table, TableType, TOMLValue};
-  use internals::primitives::Key;
+    use std::rc::Rc;
+    use std::cell::{RefCell, Cell};
+    use nom::IResult::Done;
+    use types::{DateTime, Date, Time, TimeOffset, TimeOffsetAmount, StrType};
+    use internals::parser::Parser;
+    use internals::ast::structs::{Array, ArrayValue, WSSep, TableKeyVal, InlineTable, WSKeySep, KeyVal,
+                                  CommentNewLines, Comment, CommentOrNewLines, Table, TableType, TOMLValue};
+    use internals::primitives::Key;
 
-  #[test]
-  fn test_table() {
-    let mut p = Parser::new();
-    assert_eq!(p.table("[ _underscore_ . \"-δáƨλèƨ-\" ]").1, Done("",
-      Rc::new(TableType::Standard(Table::new_str(
-        WSSep::new_str(" ", " "), "_underscore_", vec![
-          WSKeySep::new_str(WSSep::new_str(" ", " "), "\"-δáƨλèƨ-\"")
-        ]
-      ))
-    )));
-    p = Parser::new();
-    assert_eq!(p.table("[[\t NumberOne\t.\tnUMBERtWO \t]]").1, Done("",
-      Rc::new(TableType::Array(Table::new_str(
-        WSSep::new_str("\t ", " \t"), "NumberOne", vec![
-          WSKeySep::new_str(WSSep::new_str("\t", "\t"), "nUMBERtWO")
-        ]
-      ))
-    )));
-  }
+    #[test]
+    fn test_table() {
+        let mut p = Parser::new();
+        assert_eq!(p.table("[ _underscore_ . \"-δáƨλèƨ-\" ]").1,
+                   Done("",
+                        Rc::new(TableType::Standard(Table::new_str(WSSep::new_str(" ", " "),
+                                                                   "_underscore_",
+                                                                   vec![WSKeySep::new_str(WSSep::new_str(" ",
+                                                                                                         " "),
+                                                                                          "\"-δáƨλèƨ-\"")])))));
+        p = Parser::new();
+        assert_eq!(p.table("[[\t NumberOne\t.\tnUMBERtWO \t]]").1,
+                   Done("",
+                        Rc::new(TableType::Array(Table::new_str(WSSep::new_str("\t ", " \t"),
+                                                                "NumberOne",
+                                                                vec![WSKeySep::new_str(WSSep::new_str("\t",
+                                                                                                      "\t"),
+                                                                                       "nUMBERtWO")])))));
+    }
 
-  #[test]
-  fn test_table_subkey() {
-    let p = Parser::new();
-    assert_eq!(p.table_subkey("\t . \t\"áƭúƨôèλôñèƭúññèôúñôèƭú\"").1, Done("",
-      WSKeySep::new_str(WSSep::new_str("\t ", " \t"), "\"áƭúƨôèλôñèƭúññèôúñôèƭú\""),
-    ));
-  }
+    #[test]
+    fn test_table_subkey() {
+        let p = Parser::new();
+        assert_eq!(p.table_subkey("\t . \t\"áƭúƨôèλôñèƭúññèôúñôèƭú\"").1,
+                   Done("",
+                        WSKeySep::new_str(WSSep::new_str("\t ", " \t"),
+                                          "\"áƭúƨôèλôñèƭúññèôúñôèƭú\"")));
+    }
 
-  #[test]
-  fn test_table_subkeys() {
-    let p = Parser::new();
-    assert_eq!(p.table_subkeys(" .\tAPPLE.MAC . \"ßÓÓK\"").1, Done("",
-      vec![
-        WSKeySep::new_str(WSSep::new_str(" ", "\t"), "APPLE"),
-        WSKeySep::new_str(WSSep::new_str("", ""), "MAC"),
-        WSKeySep::new_str(WSSep::new_str(" ", " "), "\"ßÓÓK\"")
-      ]
-    ));
-  }
+    #[test]
+    fn test_table_subkeys() {
+        let p = Parser::new();
+        assert_eq!(p.table_subkeys(" .\tAPPLE.MAC . \"ßÓÓK\"").1,
+                   Done("",
+                        vec![WSKeySep::new_str(WSSep::new_str(" ", "\t"), "APPLE"),
+                             WSKeySep::new_str(WSSep::new_str("", ""), "MAC"),
+                             WSKeySep::new_str(WSSep::new_str(" ", " "), "\"ßÓÓK\"")]));
+    }
 
-  #[test]
-  fn test_std_table() {
-    let p = Parser::new();
-    assert_eq!(p.std_table("[Dr-Pepper  . \"ƙè¥_TWÓ\"]").1, Done("",
-      Rc::new(TableType::Standard(Table::new_str(
-        WSSep::new_str("", ""), "Dr-Pepper", vec![
-          WSKeySep::new_str(WSSep::new_str("  ", " "), "\"ƙè¥_TWÓ\"")
-        ]
-      )))
-    ));
-  }
+    #[test]
+    fn test_std_table() {
+        let p = Parser::new();
+        assert_eq!(p.std_table("[Dr-Pepper  . \"ƙè¥_TWÓ\"]").1,
+                   Done("",
+                        Rc::new(TableType::Standard(Table::new_str(WSSep::new_str("", ""),
+                                                                   "Dr-Pepper",
+                                                                   vec![WSKeySep::new_str(WSSep::new_str("  ",
+                                                                                                         " "),
+                                                                                          "\"ƙè¥_TWÓ\"")])))));
+    }
 
-  #[test]
-  fn test_array_table() {
-    let p = Parser::new();
-    assert_eq!(p.array_table("[[\"ƙè¥ôñè\"\t. key_TWO]]").1, Done("",
-      Rc::new(TableType::Array(Table::new_str(
-        WSSep::new_str("", ""), "\"ƙè¥ôñè\"", vec![
-          WSKeySep::new_str(WSSep::new_str("\t", " "), "key_TWO")
-        ]
-      ))
-    )));
-  }
+    #[test]
+    fn test_array_table() {
+        let p = Parser::new();
+        assert_eq!(p.array_table("[[\"ƙè¥ôñè\"\t. key_TWO]]").1,
+                   Done("",
+                        Rc::new(TableType::Array(Table::new_str(WSSep::new_str("", ""),
+                                                                "\"ƙè¥ôñè\"",
+                                                                vec![WSKeySep::new_str(WSSep::new_str("\t", " "),
+                                                                                       "key_TWO")])))));
+    }
 
-  #[test]
-  fn test_array_sep() {
-    let p = Parser::new();
-    assert_eq!(p.array_sep("  ,  ").1, Done("", WSSep::new_str("  ", "  ")));
-  }
+    #[test]
+    fn test_array_sep() {
+        let p = Parser::new();
+        assert_eq!(p.array_sep("  ,  ").1, Done("", WSSep::new_str("  ", "  ")));
+    }
 
-  #[test]
-  fn test_ws_newline() {
-    let p = Parser::new();
-    assert_eq!(p.ws_newline("\t\n\n").1, Done("", "\t\n\n"));
-  }
+    #[test]
+    fn test_ws_newline() {
+        let p = Parser::new();
+        assert_eq!(p.ws_newline("\t\n\n").1, Done("", "\t\n\n"));
+    }
 
-  #[test]
-  fn test_comment_nl() {
-    let p = Parser::new();
-    assert_eq!(p.comment_nl("\r\n\t#çô₥₥èñƭñèωℓïñè\n \n \n").1, Done("",
-      CommentNewLines::new_str(
-        "\r\n\t", Comment::new_str("çô₥₥èñƭñèωℓïñè"), "\n \n \n"
-      )
-    ));
-  }
+    #[test]
+    fn test_comment_nl() {
+        let p = Parser::new();
+        assert_eq!(p.comment_nl("\r\n\t#çô₥₥èñƭñèωℓïñè\n \n \n").1,
+                   Done("",
+                        CommentNewLines::new_str("\r\n\t",
+                                                 Comment::new_str("çô₥₥èñƭñèωℓïñè"),
+                                                 "\n \n \n")));
+    }
 
-  #[test]
-  fn test_comment_or_nl() {
-    let mut p = Parser::new();
-    assert_eq!(p.comment_or_nl("#ωôřƙωôřƙ\n").1, Done("",
-      CommentOrNewLines::Comment(CommentNewLines::new_str(
-        "", Comment::new_str("ωôřƙωôřƙ"), "\n"
-      ))
-    ));
-    p = Parser::new();
-    assert_eq!(p.comment_or_nl(" \t\n#ωôřƙωôřƙ\n \r\n").1, Done("",
-      CommentOrNewLines::Comment(CommentNewLines::new_str(
-        " \t\n", Comment::new_str("ωôřƙωôřƙ"), "\n \r\n"
-      ))
-    ));
-    p = Parser::new();
-    assert_eq!(p.comment_or_nl("\n\t\r\n ").1, Done("", CommentOrNewLines::NewLines("\n\t\r\n ".into())));
-  }
+    #[test]
+    fn test_comment_or_nl() {
+        let mut p = Parser::new();
+        assert_eq!(p.comment_or_nl("#ωôřƙωôřƙ\n").1,
+                   Done("",
+                        CommentOrNewLines::Comment(CommentNewLines::new_str("",
+                                                                            Comment::new_str("ωôřƙωôřƙ"),
+                                                                            "\n"))));
+        p = Parser::new();
+        assert_eq!(p.comment_or_nl(" \t\n#ωôřƙωôřƙ\n \r\n").1,
+                   Done("",
+                        CommentOrNewLines::Comment(CommentNewLines::new_str(" \t\n",
+                                                                            Comment::new_str("ωôřƙωôřƙ"),
+                                                                            "\n \r\n"))));
+        p = Parser::new();
+        assert_eq!(p.comment_or_nl("\n\t\r\n ").1, Done("", CommentOrNewLines::NewLines("\n\t\r\n ".into())));
+    }
 
-  #[test]
-  fn test_array_value() {
-    let mut p = Parser::new();
-    p.keychain.borrow_mut().push(Key::Index(Cell::new(0)));
-    assert_eq!(p.array_value("54.6, \n#çô₥₥èñƭ\n\n").1,
-      Done("",ArrayValue::new(
-        Rc::new(RefCell::new(TOMLValue::Float("54.6".into()))), Some(WSSep::new_str("", " ")),
-        vec![CommentOrNewLines::Comment(CommentNewLines::new_str(
+    #[test]
+    fn test_array_value() {
+        let mut p = Parser::new();
+        p.keychain.borrow_mut().push(Key::Index(Cell::new(0)));
+        assert_eq!(p.array_value("54.6, \n#çô₥₥èñƭ\n\n").1,
+                   Done("",
+                        ArrayValue::new(Rc::new(RefCell::new(TOMLValue::Float("54.6".into()))),
+                                        Some(WSSep::new_str("", " ")),
+                                        vec![CommentOrNewLines::Comment(CommentNewLines::new_str(
           "\n", Comment::new_str("çô₥₥èñƭ"), "\n\n"
-        ))]
-      ))
-    );
-    p = Parser::new();
-    p.keychain.borrow_mut().push(Key::Index(Cell::new(0)));
-    assert_eq!(p.array_value("\"ƨƥáϱλèƭƭï\"").1,
-      Done("",ArrayValue::new(
-        Rc::new(RefCell::new(TOMLValue::String("ƨƥáϱλèƭƭï".into(), StrType::Basic))), None, vec![CommentOrNewLines::NewLines("".into())]
-      ))
-    );
-    p = Parser::new();
-    p.keychain.borrow_mut().push(Key::Index(Cell::new(0)));
-    assert_eq!(p.array_value("44_9 , ").1,
-      Done("",ArrayValue::new(
-        Rc::new(RefCell::new(TOMLValue::Integer("44_9".into()))), Some(WSSep::new_str(" ", " ")),
-        vec![CommentOrNewLines::NewLines("".into())]
-      ))
-    );
-  }
+        ))])));
+        p = Parser::new();
+        p.keychain.borrow_mut().push(Key::Index(Cell::new(0)));
+        assert_eq!(p.array_value("\"ƨƥáϱλèƭƭï\"").1,
+                   Done("",
+                        ArrayValue::new(Rc::new(RefCell::new(TOMLValue::String("ƨƥáϱλèƭƭï".into(),
+                                                                               StrType::Basic))),
+                                        None,
+                                        vec![CommentOrNewLines::NewLines("".into())])));
+        p = Parser::new();
+        p.keychain.borrow_mut().push(Key::Index(Cell::new(0)));
+        assert_eq!(p.array_value("44_9 , ").1,
+                   Done("",
+                        ArrayValue::new(Rc::new(RefCell::new(TOMLValue::Integer("44_9".into()))),
+                                        Some(WSSep::new_str(" ", " ")),
+                                        vec![CommentOrNewLines::NewLines("".into())])));
+    }
 
-  #[test]
-  fn test_array_values() {
-    let mut p = Parser::new();
-    p.keychain.borrow_mut().push(Key::Index(Cell::new(0)));
-    assert_eq!(p.array_values("1, 2, 3").1, Done("", vec![
-      ArrayValue::new(Rc::new(RefCell::new(TOMLValue::Integer("1".into()))), Some(WSSep::new_str("", " ")),
-      vec![CommentOrNewLines::NewLines("".into())]),
-      ArrayValue::new(Rc::new(RefCell::new(TOMLValue::Integer("2".into()))), Some(WSSep::new_str("", " ")),
-      vec![CommentOrNewLines::NewLines("".into())]),
-      ArrayValue::new(Rc::new(RefCell::new(TOMLValue::Integer("3".into()))), None, vec![CommentOrNewLines::NewLines("".into())])
-    ]));
-    p = Parser::new();
-    p.keychain.borrow_mut().push(Key::Index(Cell::new(0)));
-    assert_eq!(p.array_values("1, 2, #çô₥₥èñƭ\n3, ").1, Done("", vec![
+    #[test]
+    fn test_array_values() {
+        let mut p = Parser::new();
+        p.keychain.borrow_mut().push(Key::Index(Cell::new(0)));
+        assert_eq!(p.array_values("1, 2, 3").1,
+                   Done("",
+                        vec![ArrayValue::new(Rc::new(RefCell::new(TOMLValue::Integer("1".into()))),
+                                             Some(WSSep::new_str("", " ")),
+                                             vec![CommentOrNewLines::NewLines("".into())]),
+                             ArrayValue::new(Rc::new(RefCell::new(TOMLValue::Integer("2".into()))),
+                                             Some(WSSep::new_str("", " ")),
+                                             vec![CommentOrNewLines::NewLines("".into())]),
+                             ArrayValue::new(Rc::new(RefCell::new(TOMLValue::Integer("3".into()))),
+                                             None,
+                                             vec![CommentOrNewLines::NewLines("".into())])]));
+        p = Parser::new();
+        p.keychain.borrow_mut().push(Key::Index(Cell::new(0)));
+        assert_eq!(p.array_values("1, 2, #çô₥₥èñƭ\n3, ").1,
+                   Done("",
+                        vec![
       ArrayValue::new(Rc::new(RefCell::new(TOMLValue::Integer("1".into()))), Some(WSSep::new_str("", " ")),
       vec![CommentOrNewLines::NewLines("".into())]),
       ArrayValue::new(Rc::new(RefCell::new(TOMLValue::Integer("2".into()))), Some(WSSep::new_str("", " ")),
@@ -760,14 +773,14 @@ mod test {
       ArrayValue::new(Rc::new(RefCell::new(TOMLValue::Integer("3".into()))), Some(WSSep::new_str("", " ")),
       vec![CommentOrNewLines::NewLines("".into())])
     ]));
-  }
+    }
 
-  #[test]
-  fn test_non_nested_array() {
-    let p = Parser::new();
-    assert_eq!(p.array("[2010-10-10T10:10:10.33Z, 1950-03-30T21:04:14.123+05:00]").1,
-      Done("", Rc::new(RefCell::new(Array::new(
-        vec![ArrayValue::new(
+    #[test]
+    fn test_non_nested_array() {
+        let p = Parser::new();
+        assert_eq!(p.array("[2010-10-10T10:10:10.33Z, 1950-03-30T21:04:14.123+05:00]").1,
+                   Done("",
+                        Rc::new(RefCell::new(Array::new(vec![ArrayValue::new(
           Rc::new(RefCell::new(TOMLValue::DateTime(DateTime::new(
             Date::new_str("2010", "10", "10"), Some(Time::new_str("10", "10", "10", Some("33"),
               Some(TimeOffset::Zulu)
@@ -782,15 +795,14 @@ mod test {
           )))))),
           None, vec![CommentOrNewLines::NewLines("".into())]
         )],
-        vec![CommentOrNewLines::NewLines("".into())], vec![CommentOrNewLines::NewLines("".into())]
-      ))))
-    );
-  }
+                                                        vec![CommentOrNewLines::NewLines("".into())],
+                                                        vec![CommentOrNewLines::NewLines("".into())])))));
+    }
 
-  #[test]
-  fn test_nested_array() {
-    let p = Parser::new();
-    assert_eq!(p.array("[[3,4], [4,5], [6]]").1,
+    #[test]
+    fn test_nested_array() {
+        let p = Parser::new();
+        assert_eq!(p.array("[[3,4], [4,5], [6]]").1,
       Done("", Rc::new(RefCell::new(Array::new(
         vec![
           ArrayValue::new(
@@ -840,25 +852,28 @@ mod test {
         vec![CommentOrNewLines::NewLines("".into())], vec![CommentOrNewLines::NewLines("".into())]
       ))))
     );
-  }
+    }
 
-  #[test]
-  fn test_table_keyval() {
-    let p = Parser::new();
-    assert_eq!(p.table_keyval("\"Ì WúƲ Húϱƨ!\"\t=\t'Mè ƭôô!' ").1, Done("", TableKeyVal::new(
-      KeyVal::new_str(
-        "\"Ì WúƲ Húϱƨ!\"", WSSep::new_str("\t", "\t"), Rc::new(RefCell::new(TOMLValue::String("Mè ƭôô!".into(), StrType::Literal)))
-      ),
-      None,
-      vec![]
-    )));
-  }
+    #[test]
+    fn test_table_keyval() {
+        let p = Parser::new();
+        assert_eq!(p.table_keyval("\"Ì WúƲ Húϱƨ!\"\t=\t'Mè ƭôô!' ").1,
+                   Done("",
+                        TableKeyVal::new(KeyVal::new_str("\"Ì WúƲ Húϱƨ!\"",
+                                                         WSSep::new_str("\t", "\t"),
+                                                         Rc::new(RefCell::new(TOMLValue::String("Mè ƭôô!"
+                                                                                                    .into(),
+                                                                                                StrType::Literal)))),
+                                         None,
+                                         vec![])));
+    }
 
-  #[test]
-  fn test_inline_table_keyvals_non_empty() {
-    let p = Parser::new();
-    assert_eq!(p.inline_table_keyvals_non_empty("Key =\t54,\"Key2\" = '34.99'").1,
-      Done("", vec![
+    #[test]
+    fn test_inline_table_keyvals_non_empty() {
+        let p = Parser::new();
+        assert_eq!(p.inline_table_keyvals_non_empty("Key =\t54,\"Key2\" = '34.99'").1,
+                   Done("",
+                        vec![
         TableKeyVal::new(
           KeyVal::new_str(
             "Key", WSSep::new_str(" ", "\t"),
@@ -875,16 +890,15 @@ mod test {
           None,
           vec![]
         )
-      ])
-    );
-  }
+      ]));
+    }
 
-  #[test]
-  fn test_inline_table() {
-    let p = Parser::new();
-    assert_eq!(p.inline_table("{\tKey = 3.14E+5 , \"Key2\" = '''New\nLine'''\t}").1,
-      Done("", Rc::new(RefCell::new(InlineTable::new(
-        vec![
+    #[test]
+    fn test_inline_table() {
+        let p = Parser::new();
+        assert_eq!(p.inline_table("{\tKey = 3.14E+5 , \"Key2\" = '''New\nLine'''\t}").1,
+                   Done("",
+                        Rc::new(RefCell::new(InlineTable::new(vec![
           TableKeyVal::new(
             KeyVal::new_str(
               "Key", WSSep::new_str(" ", " "),
@@ -901,8 +915,6 @@ mod test {
             vec![CommentOrNewLines::NewLines("\t".into())]
           )
         ],
-        WSSep::new_str("\t", "")
-      ))))
-    );
-  }
+                                                              WSSep::new_str("\t", ""))))));
+    }
 }
