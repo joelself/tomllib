@@ -1,8 +1,9 @@
 ![tomllib logo](https://dislocal.com/wp-content/uploads/2016/01/tomllib_logo1.svg)          ![tomlkit logo](https://dislocal.com/wp-content/uploads/2016/01/tomlkit_logo1.svg)
+## The first release (0.1.1) is out! Git it on [crates.io](https://crates.io/crates/tomllib)!
 #### I wrote a blog post about my adventures in creating method macros in __nom__. [Give it a read](https://wp.me/p7ikGY-3g)!
 ## `tomllib` is a parser, modifier, and generator for TOML files ***that doesn't judge you***! 
 
-######It is written in Rust using [nom](https://github.com/Geal/nom). `tomlkit` is the command line tool with the same functionality as `tomllib` that is coming on after the release of tomllib.
+######It is written in Rust using [nom](https://github.com/Geal/nom). `tomlkit` is the command line tool with the same functionality as `tomllib` that is coming soon after the release of tomllib.
 
 [![Build Status](https://travis-ci.org/joelself/tomllib.svg?branch=master)](https://travis-ci.org/joelself/toml_parser)  [![Coverage Status](https://coveralls.io/repos/github/joelself/tomllib/badge.svg?branch=master)](https://coveralls.io/github/joelself/tomllib?branch=master)  [![ghit.me](https://ghit.me/badge.svg?repo=joelself/tomllib)](https://ghit.me/repo/joelself/tomllib)
 
