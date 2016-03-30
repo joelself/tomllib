@@ -1,13 +1,14 @@
 [package]
 name = "tomllib"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Joel Self <self@jself.com>"]
 description = "A format-preserving TOML file parser and manipulator"
 license = "MIT"
 repository = "https://github.com/joelself/tomllib"
 readme = "README.md"
-#documentation = "http://rust.unhandledexpression.com/tomllib/"
+documentation = "https://jself.io/rustdocs/tomllib/0.1.1/tomllib/"
 keywords = ["toml", "parser", "encode", "decode", "nom"]
+exclude = ["assets/*", "tests/*"]
 
 [dependencies.nom]
 version = "^1.2.0"

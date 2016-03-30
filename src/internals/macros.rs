@@ -1,4 +1,4 @@
-#[macro_export]
+
 macro_rules! to_val(
   ($tval:expr) => (
     match $tval {
@@ -14,12 +14,10 @@ macro_rules! to_val(
   );
 );
 
-#[macro_export]
 macro_rules! call_s(
   ($i:expr, $method:path) => ( $method( $i ) );
 );
 
-#[macro_export]
 macro_rules! res2opt(
   ($i:expr) => (
     match $i {

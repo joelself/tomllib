@@ -1,9 +1,84 @@
+
+//! Parse and manipulate TOML documents while preserving whitespace and comments with tomllib.
+//! 
+//! tomllib is a Rust library for parsing, manipulating and outputting TOML documents. tomllib strives to preserve the
+//! originalof your document including optional whitespace and comments. The code is available on
+//! [GitHub](https://github.com/joelself/tomllib).
+//!
+//! `TOMLParser` is located at the root of the module, while associated types in the `types` module. Because of the way
+//! the parse method works it needs to take ownership of the parser. When it returns, it returns ownership of the parser
+//! along with a `ParseResult` that contains a result and any errors.
+//!
+//! Here's a quick example of how you parse a document, then get and set some values:
+//! 
+//! # Examples
+//! 
+//! ```
+//! use tomllib::TOMLParser;
+//! use tomllib::types::Value;
+//! 
+//! let parser = TOMLParser::new();
+//! let toml_doc = r#"
+//! [table] # This is a comment
+//!   "Key One" = "A Value" # This line is indented
+//!   ## Empty line
+//!     Key2 = 1918-07-02 # This line is indented twice
+//! "#;
+//! // Get back the parser and a result from the parse method in a tuple
+//! let (mut parser, result) = parser.parse(toml_doc);
+//! let value = parser.get_value("table.\"Key One\"");
+//! assert_eq!(value.unwrap(), Value::basic_string("A Value").unwrap());
+//! parser.set_value("table.\"Key One\"", Value::float(9.876));
+//! parser.set_value("table.Key2", Value::bool(false));
+//! assert_eq!(&format!("{}", parser), r#"
+//! [table] # This is a comment
+//!   "Key One" = 9.876 # This line is indented
+//!   ## Empty line
+//!     Key2 = false # This line is indented twice
+//! "#);
+//! ```
+//! 
+//! Here's how you would deal with the `ParseResult` and any errors
+//!
+//! ```
+//! use tomllib::TOMLParser;
+//! use tomllib::types::{Value, ParseResult, ParseError};
+//! 
+//! let parser = TOMLParser::new();
+//! let toml_doc = r#"
+//! [[array_of_tables]]
+//!   [array_of_tables.has_error]
+//!   mixed_array = [5, true]
+//! "#;
+//! let (mut parser, result) = parser.parse(toml_doc);
+//! // For brevity's sake we're only matching `FullError` `ParseResult`s and `MixedArray` `ParseError`s
+//! match result {
+//!    ParseResult::FullError(rrc_errors) => {
+//!      println!("Parsed the full document, but with errors:");
+//!      for error in rrc_errors.borrow().iter() {
+//!        match error {
+//!          &ParseError::MixedArray(ref key, ref line, ref column) => {
+//!            println!("A mixed array with key {} was encountered on line {}, column {}.", key, line, column);
+//!            assert_eq!("array_of_tables[0].has_error.mixed_array", *key);
+//!            assert_eq!(4, *line);
+//!            assert_eq!(0, *column); // column reporting is unimplemented so it will always be zero        
+//!          },
+//!          _ => assert!(false),
+//!        }
+//!      }
+//!    },
+//!    _ => assert!(false),
+//! }
+//! ```
+//! 
+//! Documentation and examples for specific types, enumeration values, and functions can be found in the `TOMLParser`
+//! docs and the `types` module docs.
+
 #[macro_use]
 extern crate nom;
 extern crate regex;
 #[macro_use]
 extern crate log;
-#[macro_use]
 mod internals;
 pub mod types;
 
