@@ -5,7 +5,7 @@
 
 ######It is written in Rust using [nom](https://github.com/Geal/nom). `tomlkit` is the command line tool with the same functionality as `tomllib` that is coming soon after the release of tomllib.
 
-[![Build Status](https://travis-ci.org/joelself/tomllib.svg?branch=master)](https://travis-ci.org/joelself/toml_parser)  [![Coverage Status](https://coveralls.io/repos/github/joelself/tomllib/badge.svg?branch=master)](https://coveralls.io/github/joelself/tomllib?branch=master)  [![ghit.me](https://ghit.me/badge.svg?repo=joelself/tomllib)](https://ghit.me/repo/joelself/tomllib)
+[![Crates.io](https://img.shields.io/crates/v/tomllib.svg)](https://crates.io/crates/tomllib) [![Build Status](https://travis-ci.org/joelself/tomllib.svg?branch=master)](https://travis-ci.org/joelself/toml_parser)  [![Coverage Status](https://coveralls.io/repos/github/joelself/tomllib/badge.svg?branch=master)](https://coveralls.io/github/joelself/tomllib?branch=master)  [![ghit.me](https://ghit.me/badge.svg?repo=joelself/tomllib)](https://ghit.me/repo/joelself/tomllib)
 
 ####What does it mean that it doesn't judge me?###
 
