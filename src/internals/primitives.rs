@@ -3,25 +3,23 @@ use std::rc::Rc;
 use std::collections::HashMap;
 use std::collections::hash_map::Entry;
 use std::borrow::Cow;
-use internals::ast::structs::{KeyVal, WSSep, TOMLValue, ErrorCode,
-  HashValue, TableType, Table, get_last_keys};
-use types::{Date, Time, DateTime, TimeOffset, TimeOffsetAmount, ParseError, StrType,
-            Children, Value};
+use internals::ast::structs::{KeyVal, WSSep, TOMLValue, ErrorCode, HashValue, TableType, Table, get_last_keys};
+use types::{Date, Time, DateTime, TimeOffset, TimeOffsetAmount, ParseError, StrType, Children, Value};
 use internals::parser::Parser;
 use nom;
 use nom::{IResult, InputLength};
 
 pub enum Key<'a> {
-	Str(Cow<'a, str>),
-	Index(Cell<usize>),
+  Str(Cow<'a, str>),
+  Index(Cell<usize>),
 }
 
 impl<'a> Key<'a> {
-	pub fn inc(&mut self) {
-		if let &mut Key::Index(ref mut i) = self {
-			i.set(i.get() + 1);
-		}
-	}
+  pub fn inc(&mut self) {
+    if let &mut Key::Index(ref mut i) = self {
+      i.set(i.get() + 1);
+    }
+  }
 }
 
 #[inline(always)]
@@ -37,11 +35,11 @@ named!(full_line<&str, &str>, re_find!("^(.*?)(\n|(\r\n))"));
 named!(all_lines<&str, Vec<&str> >, many0!(full_line));
 
 pub fn count_lines(s: &str) -> usize {
-	let r = all_lines(s);
-	match &r {
+  let r = all_lines(s);
+  match &r {
     &IResult::Done(_, ref o) => o.len() as usize,
-    _						 => 0 as usize,
-	}
+    _            => 0 as usize,
+  }
 }
 
 impl<'a> Parser<'a> {
@@ -383,35 +381,35 @@ impl<'a> Parser<'a> {
 
   // Basic String
   named!(pub quoteless_basic_string<&'a str, &'a str>,
-    re_find!(r#"^( |!|[#-\[]|[\]-􏿿]|(\\")|(\\\\)|(\\/)|(\\b)|(\\f)|(\\n)|(\\r)|(\\t)|(\\u[0-9A-Z]{4})|(\\U[0-9A-Z]{8}))*"#));
+    re_find!(r#"^( |!|[#-\[]|[\]-￿]|(\\")|(\\\\)|(\\/)|(\\b)|(\\f)|(\\n)|(\\r)|(\\t)|(\\u[0-9A-Z]{4})|(\\U[0-9A-Z]{8}))*"#));
   // Multiline Basic String
   // TODO: Convert this to take_while_s using a function that increments self.linecount
   named!(pub quoteless_ml_basic_string<&'a str, &'a str>,
-    re_find!(r#"^([ -\[]|[\]-􏿿]|(\\")|(\\\\)|(\\/)|(\\b)|(\\f)|(\\n)|(\\r)|(\t)|(\\u[0-9A-Z]{4})|(\\U[0-9A-Z]{8})|\n|(\r\n)|(\\(\n|(\r\n))))*"#));
+    re_find!(r#"^([ -\[]|[\]-￿]|(\\")|(\\\\)|(\\/)|(\\b)|(\\f)|(\\n)|(\\r)|(\t)|(\\u[0-9A-Z]{4})|(\\U[0-9A-Z]{8})|\n|(\r\n)|(\\(\n|(\r\n))))*"#));
   // Literal String
-  named!(pub quoteless_literal_string<&'a str, &'a str>, re_find!(r#"^(	|[ -&]|[\(-􏿿])*"#));
+  named!(pub quoteless_literal_string<&'a str, &'a str>, re_find!(r#"^( |[ -&]|[\(-￿])*"#));
   // Multiline Literal String
   // TODO: Convert to take_while_s using a function that increments self.linecount
-  named!(pub quoteless_ml_literal_string<&'a str, &'a str>, re_find!(r#"^(	|[ -􏿿]|\n|(\r\n))*"#));
+  named!(pub quoteless_ml_literal_string<&'a str, &'a str>, re_find!(r#"^(  |[ -￿]|\n|(\r\n))*"#));
 
   // Basic String
   method!(raw_basic_string<Parser<'a>, &'a str, &'a str>, self,
-    re_find!(r#"^"( |!|[#-\[]|[\]-􏿿]|(\\")|(\\\\)|(\\/)|(\\b)|(\\f)|(\\n)|(\\r)|(\\t)|(\\u[0-9A-Z]{4})|(\\U[0-9A-Z]{8}))*?""#));
+    re_find!(r#"^"( |!|[#-\[]|[\]-￿]|(\\")|(\\\\)|(\\/)|(\\b)|(\\f)|(\\n)|(\\r)|(\\t)|(\\u[0-9A-Z]{4})|(\\U[0-9A-Z]{8}))*?""#));
   // Multiline Basic String
   // TODO: Convert this to take_while_s using a function that increments self.linecount
   method!(raw_ml_basic_string<Parser<'a>, &'a str, &'a str>, self,
     chain!(
-   string: re_find!(r#"^"""([ -\[]|[\]-􏿿]|(\\")|(\\\\)|(\\/)|(\\b)|(\\f)|(\\n)|(\\r)|(\t)|(\\u[0-9A-Z]{4})|(\\U[0-9A-Z]{8})|\n|(\r\n)|(\\(\n|(\r\n))))*?""""#),
+   string: re_find!(r#"^"""([ -\[]|[\]-￿]|(\\")|(\\\\)|(\\/)|(\\b)|(\\f)|(\\n)|(\\r)|(\t)|(\\u[0-9A-Z]{4})|(\\U[0-9A-Z]{8})|\n|(\r\n)|(\\(\n|(\r\n))))*?""""#),
       ||{self.line_count.set(self.line_count.get() + count_lines(string)); string}
     )
   );
   // Literal String
-  method!(raw_literal_string<Parser<'a>, &'a str, &'a str>, self, re_find!(r#"^'(	|[ -&]|[\(-􏿿])*?'"#));
+  method!(raw_literal_string<Parser<'a>, &'a str, &'a str>, self, re_find!(r#"^'( |[ -&]|[\(-￿])*?'"#));
   // Multiline Literal String
   // TODO: Convert to take_while_s using a function that increments self.linecount
   method!(raw_ml_literal_string<Parser<'a>, &'a str, &'a str>, self,
     chain!(
-   string: re_find!(r#"^'''(	|[ -􏿿]|\n|(\r\n))*?'''"#),
+   string: re_find!(r#"^'''(  |[ -￿]|\n|(\r\n))*?'''"#),
       ||{self.line_count.set(self.line_count.get() + count_lines(string)); string}
     )
   );
@@ -552,7 +550,7 @@ impl<'a> Parser<'a> {
       other => (self, other),
     }
   }
-  
+
   method!(date_time_internal<Parser<'a>, &'a str, DateTime>, mut self,
     chain!(
      date: call_m!(self.date)             ~
@@ -567,7 +565,7 @@ impl<'a> Parser<'a> {
   // Key-TOMLValue pairs
   method!(unquoted_key<Parser<'a>, &'a str, &'a str>, self, take_while1_s!(is_keychar));
   method!(quoted_key<Parser<'a>, &'a str, &'a str>, self,
-    re_find!("^\"( |!|[#-\\[]|[\\]-􏿿]|(\\\\\")|(\\\\\\\\)|(\\\\/)|(\\\\b)|(\\\\f)|(\\\\n)|(\\\\r)|(\\\\t)|(\\\\u[0-9A-Z]{4})|(\\\\U[0-9A-Z]{8}))+\""));
+    re_find!("^\"( |!|[#-\\[]|[\\]-￿]|(\\\\\")|(\\\\\\\\)|(\\\\/)|(\\\\b)|(\\\\f)|(\\\\n)|(\\\\r)|(\\\\t)|(\\\\u[0-9A-Z]{4})|(\\\\U[0-9A-Z]{8}))+\""));
 
   method!(pub key<Parser<'a>, &'a str, &'a str>, mut self, alt!(
     complete!(call_m!(self.quoted_key))   =>  {|k: &'a str| {
@@ -584,7 +582,7 @@ impl<'a> Parser<'a> {
       ws2: call_m!(self.ws) ,
       ||{
         WSSep::new_str(ws1, ws2)
-      }     
+      }
     )
   );
 
@@ -630,9 +628,8 @@ impl<'a> Parser<'a> {
 #[cfg(test)]
 mod test {
   use nom::IResult::Done;
-  use internals::ast::structs::{WSSep, Array, ArrayValue, KeyVal,
-                     InlineTable, TableKeyVal, TOMLValue,
-                     CommentOrNewLines};
+  use internals::ast::structs::{WSSep, Array, ArrayValue, KeyVal, InlineTable, TableKeyVal, TOMLValue,
+                                CommentOrNewLines};
   use types::{DateTime, Time, Date, TimeOffsetAmount, TimeOffset, StrType};
   use internals::parser::Parser;
   use std::rc::Rc;
@@ -653,7 +650,8 @@ mod test {
   #[test]
   fn test_basic_string() {
     let p = Parser::new();
-    assert_eq!(p.basic_string("\"TÎ»Ã¯Æ¨ Ã¯Æ¨ Ã¡ Î²Ã¡Æ¨Ã¯Ã§ Æ¨Æ­Å™Ã¯Ã±Ï±.\"").1, Done("", "TÎ»Ã¯Æ¨ Ã¯Æ¨ Ã¡ Î²Ã¡Æ¨Ã¯Ã§ Æ¨Æ­Å™Ã¯Ã±Ï±."));
+    assert_eq!(p.basic_string("\"TÎ»Ã¯Æ¨ Ã¯Æ¨ Ã¡ Î²Ã¡Æ¨Ã¯Ã§ Æ¨Æ­Å™Ã¯Ã±Ï±.\"").1,
+      Done("", "TÎ»Ã¯Æ¨ Ã¯Æ¨ Ã¡ Î²Ã¡Æ¨Ã¯Ã§ Æ¨Æ­Å™Ã¯Ã±Ï±."));
   }
 
   #[test]
@@ -669,7 +667,7 @@ mod test {
   #[test]
   fn test_literal_string() {
     let p = Parser::new();
-    assert_eq!(p.literal_string("'Abc ÑŸ'").1, Done("", "Abc ÑŸ")); 
+    assert_eq!(p.literal_string("'Abc ÑŸ'").1, Done("", "Abc ÑŸ"));
   }
 
   #[test]
@@ -686,7 +684,8 @@ mod test {
   #[test]
   fn test_string() {
     let mut p = Parser::new();
-    assert_eq!(p.string("\"Î²Ã¡Æ¨Ã¯Ã§_Æ¨Æ­Å™Ã¯Ã±Ï±\"").1, Done("", TOMLValue::String("Î²Ã¡Æ¨Ã¯Ã§_Æ¨Æ­Å™Ã¯Ã±Ï±".into(), StrType::Basic)));
+    assert_eq!(p.string("\"Î²Ã¡Æ¨Ã¯Ã§_Æ¨Æ­Å™Ã¯Ã±Ï±\"").1,
+      Done("", TOMLValue::String("Î²Ã¡Æ¨Ã¯Ã§_Æ¨Æ­Å™Ã¯Ã±Ï±".into(), StrType::Basic)));
     p = Parser::new();
     assert_eq!(p.string(r#""""â‚¥â„“_Î²Ã¡Æ¨Ã¯Ã§_Æ¨Æ­Å™Ã¯Ã±Ï±
 Ã±Ãºâ‚¥Î²Ã¨Å™_Æ­Ï‰Ã´
@@ -696,7 +695,8 @@ NÃ›MÃŸÃ‰R-THRÃ‰Ã‰
 NÃ›MÃŸÃ‰R-THRÃ‰Ã‰
 "#.into(), StrType::MLBasic)));
     p = Parser::new();
-    assert_eq!(p.string("'Â£ÃŒTÃ‰RÃ‚Â£Â§TRÃ¯NG'").1, Done("", TOMLValue::String("Â£ÃŒTÃ‰RÃ‚Â£Â§TRÃ¯NG".into(), StrType::Literal)));
+    assert_eq!(p.string("'Â£ÃŒTÃ‰RÃ‚Â£Â§TRÃ¯NG'").1,
+      Done("", TOMLValue::String("Â£ÃŒTÃ‰RÃ‚Â£Â§TRÃ¯NG".into(), StrType::Literal)));
     p = Parser::new();
     assert_eq!(p.string(r#"'''Â§Æ¥Å™Ã¯Æ­Ã¨
 Ã‡Ã´Æ™Ã¨
@@ -842,7 +842,9 @@ NÃ›MÃŸÃ‰R-THRÃ‰Ã‰
     p = Parser::new();
     assert_eq!(p.val("true").1, Done("", Rc::new(RefCell::new(TOMLValue::Boolean(true)))));
     p = Parser::new();
-    assert_eq!(p.val("'Â§Ã´â‚¥Ã¨ Â§Æ­Å™Ã¯Ã±Ï±'").1, Done("", Rc::new(RefCell::new(TOMLValue::String("Â§Ã´â‚¥Ã¨ Â§Æ­Å™Ã¯Ã±Ï±".into(), StrType::Literal)))));
+    assert_eq!(p.val("'Â§Ã´â‚¥Ã¨ Â§Æ­Å™Ã¯Ã±Ï±'").1, Done("", Rc::new(RefCell::new(TOMLValue::String(
+      "Â§Ã´â‚¥Ã¨ Â§Æ­Å™Ã¯Ã±Ï±".into(), StrType::Literal
+    )))));
   }
 
   #[test]

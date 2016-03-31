@@ -1,6 +1,5 @@
-use internals::ast::structs::{TableType, WSKeySep, Table, CommentNewLines,
-  CommentOrNewLines, ArrayValue, Array, TOMLValue, InlineTable, WSSep,
-  TableKeyVal, ArrayType, HashValue, format_tt_keys};
+use internals::ast::structs::{TableType, WSKeySep, Table, CommentNewLines, CommentOrNewLines, ArrayValue, Array,
+                              TOMLValue, InlineTable, WSSep, TableKeyVal, ArrayType, HashValue, format_tt_keys};
 use internals::parser::Parser;
 use internals::primitives::Key;
 use types::{ParseError, Children};
@@ -26,7 +25,7 @@ fn map_val_to_array_type(val: &TOMLValue) -> ArrayType {
 }
 
 impl<'a> Parser<'a> {
-  
+
   pub fn insert(vector: &RefCell<Vec<String>>, insert: String) -> bool {
     for s in vector.borrow().iter() {
       if s == &insert {
@@ -36,7 +35,7 @@ impl<'a> Parser<'a> {
     vector.borrow_mut().push(insert);
     return true;
   }
-  
+
   fn contains(vector: &RefCell<Vec<String>>, find: &str) -> bool {
     for s in vector.borrow().iter() {
       if s == find {
@@ -212,7 +211,7 @@ impl<'a> Parser<'a> {
       key: call_m!(self.key)        ,
       ||{
         WSKeySep::new_str(WSSep::new_str(ws1, ws2), key)
-      } 
+      }
     )
   );
   // Standard Table
@@ -340,7 +339,7 @@ impl<'a> Parser<'a> {
     )
   );
 
-  //Array Table
+  // Array Table
   method!(array_table<Parser<'a>, &'a str, Rc<TableType> >, mut self,
     chain!(
            tag_s!("[[")   ~
@@ -481,7 +480,7 @@ impl<'a> Parser<'a> {
 
   method!(comment_or_nls<Parser<'a>, &'a str, Vec<CommentOrNewLines> >, mut self,
     many1!(call_m!(self.comment_or_nl)));
-  
+
   method!(array_value<Parser<'a>, &'a str, ArrayValue>, mut self,
         chain!(
           val: call_m!(self.val)                        ~
@@ -539,7 +538,7 @@ impl<'a> Parser<'a> {
 
   pub fn array(mut self: Parser<'a>, input: &'a str) -> (Parser<'a>, IResult<&'a str, Rc<RefCell<Array>>>) {
     // Initialize last array type to None, we need a stack because arrays can be nested
-    //debug!("*** array called on input:\t\t\t{}", input);
+    // debug!("*** array called on input:\t\t\t{}", input);
     self.last_array_type.borrow_mut().push(ArrayType::None);
     self.keychain.borrow_mut().push(Key::Index(Cell::new(0)));
     let (tmp, res) = self.array_internal(input);
@@ -602,8 +601,8 @@ mod test {
   use nom::IResult::Done;
   use types::{DateTime, Date, Time, TimeOffset, TimeOffsetAmount, StrType};
   use internals::parser::Parser;
-  use internals::ast::structs::{Array, ArrayValue, WSSep, TableKeyVal, InlineTable, WSKeySep,
-    KeyVal, CommentNewLines, Comment, CommentOrNewLines, Table, TableType, TOMLValue};
+  use internals::ast::structs::{Array, ArrayValue, WSSep, TableKeyVal, InlineTable, WSKeySep, KeyVal, CommentNewLines,
+                                Comment, CommentOrNewLines, Table, TableType, TOMLValue};
   use internals::primitives::Key;
 
   #[test]

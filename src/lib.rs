@@ -1,6 +1,6 @@
 
 //! Parse and manipulate TOML documents while preserving whitespace and comments with tomllib.
-//! 
+//!
 //! tomllib is a Rust library for parsing, manipulating and outputting TOML documents. tomllib strives to preserve the
 //! originalof your document including optional whitespace and comments. The code is available on
 //! [GitHub](https://github.com/joelself/tomllib).
@@ -10,13 +10,13 @@
 //! along with a `ParseResult` that contains a result and any errors.
 //!
 //! Here's a quick example of how you parse a document, then get and set some values:
-//! 
+//!
 //! # Examples
-//! 
+//!
 //! ```
 //! use tomllib::TOMLParser;
 //! use tomllib::types::Value;
-//! 
+//!
 //! let parser = TOMLParser::new();
 //! let toml_doc = r#"
 //! [table] # This is a comment
@@ -37,13 +37,13 @@
 //!     Key2 = false # This line is indented twice
 //! "#);
 //! ```
-//! 
+//!
 //! Here's how you would deal with the `ParseResult` and any errors
 //!
 //! ```
 //! use tomllib::TOMLParser;
 //! use tomllib::types::{Value, ParseResult, ParseError};
-//! 
+//!
 //! let parser = TOMLParser::new();
 //! let toml_doc = r#"
 //! [[array_of_tables]]
@@ -61,7 +61,7 @@
 //!            println!("A mixed array with key {} was encountered on line {}, column {}.", key, line, column);
 //!            assert_eq!("array_of_tables[0].has_error.mixed_array", *key);
 //!            assert_eq!(4, *line);
-//!            assert_eq!(0, *column); // column reporting is unimplemented so it will always be zero        
+//!            assert_eq!(0, *column); // column reporting is unimplemented so it will always be zero
 //!          },
 //!          _ => assert!(false),
 //!        }
@@ -70,7 +70,7 @@
 //!    _ => assert!(false),
 //! }
 //! ```
-//! 
+//!
 //! Documentation and examples for specific types, enumeration values, and functions can be found in the `TOMLParser`
 //! docs and the `types` module docs.
 
@@ -113,7 +113,7 @@ impl<'a> TOMLParser<'a> {
   ///
   /// ```
   /// use tomllib::TOMLParser;
-  /// 
+  ///
   /// let parser = TOMLParser::new();
   /// let (parser, result) = parser.parse("[table]\nAKey=\"A Value\"");
   /// ```
@@ -131,7 +131,7 @@ impl<'a> TOMLParser<'a> {
   /// ```
   /// use tomllib::TOMLParser;
   /// use tomllib::types::Value;
-  /// 
+  ///
   /// let parser = TOMLParser::new();
   /// let toml_doc = r#""A Key" = "A Value"
   /// [[tables]]
@@ -161,7 +161,7 @@ impl<'a> TOMLParser<'a> {
   /// * Any of the keys in an `InlineTable` is changed
   ///
   /// In these cases the `Array` or `InlineTable` will revert to default formatting: No whitespace after/before
-  /// opening/closing braces, no whitespace before and one space after all commas, no comments on the same line as the 
+  /// opening/closing braces, no whitespace before and one space after all commas, no comments on the same line as the
   /// `Array` or `InlineTable`, and one space before and after an equals sign in `InlineTable`s.
   ///
   /// # Examples
@@ -170,7 +170,7 @@ impl<'a> TOMLParser<'a> {
   /// #
   /// use tomllib::TOMLParser;
   /// use tomllib::types::Value;
-  /// 
+  ///
   /// let parser = TOMLParser::new();
   /// let (mut parser, result) = parser.parse("[table]\nAKey=\"A Value\"");
   /// let success = parser.set_value("table.AKey", Value::Integer("5_000".into()));
@@ -191,7 +191,7 @@ impl<'a> TOMLParser<'a> {
   /// use tomllib::TOMLParser;
   /// use tomllib::types::Children;
   /// use std::cell::{Cell, RefCell};
-  /// 
+  ///
   /// let parser = TOMLParser::new();
   /// let toml_doc = r#"
   /// [table]
@@ -222,7 +222,7 @@ impl<'a> TOMLParser<'a> {
 /// ```
 /// use tomllib::TOMLParser;
 /// use tomllib::types::Value;
-/// 
+///
 /// let parser = TOMLParser::new();
 /// let toml_doc = r#"
 /// [table] # This is a comment
@@ -239,7 +239,7 @@ impl<'a> TOMLParser<'a> {
 /// "#);
 /// ```
 impl<'a> Display for TOMLParser<'a> {
-	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-		write!(f, "{}", self.parser)
-	}
+  fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    write!(f, "{}", self.parser)
+  }
 }

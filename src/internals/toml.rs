@@ -84,10 +84,8 @@ mod test {
   use nom::IResult::Done;
   use internals::parser::Parser;
   use types::{TimeOffsetAmount, DateTime, Date, Time, TimeOffset, StrType};
-  use internals::ast::structs::{Expression, Comment, WSSep, KeyVal, Table, WSKeySep,
-                     TableType, TOMLValue, NLExpression, ArrayValue, Toml,
-                     Array, CommentOrNewLines};
-  
+  use internals::ast::structs::{Expression, Comment, WSSep, KeyVal, Table, WSKeySep, TableType, TOMLValue, NLExpression,
+                                ArrayValue, Toml, Array, CommentOrNewLines};
 
   #[test]
   fn test_toml() {
@@ -217,7 +215,7 @@ enabled = true"#).1, Done("",
             None, None
           )
         )
-      ]) 
+      ])
     ));
   }
 
@@ -252,8 +250,8 @@ enabled = true"#).1, Done("",
           // expression at the end of the list
           // The exceptions are for characters that end comments, but are not "newlines". It's something that
           // needs to be fixed in the ABNF
-          NLExpression::new_str( 
-            "\n", Expression::new( 
+          NLExpression::new_str(
+            "\n", Expression::new(
               WSSep::new_str("", ""), None, None, None
             )
           )
@@ -333,7 +331,7 @@ enabled = true"#).1, Done("",
   #[test]
   fn test_ws_expr() {
     let p = Parser::new();
-    assert_eq!(p.ws_expr("  \t \t \n").1, Done("\n", 
+    assert_eq!(p.ws_expr("  \t \t \n").1, Done("\n",
       Expression::new(WSSep::new_str("  \t \t ", ""), None, None, None)
     ));
   }

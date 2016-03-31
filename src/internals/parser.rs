@@ -5,111 +5,111 @@ use std::collections::hash_map::Entry;
 use std::cell::{Cell, RefCell};
 use std::rc::Rc;
 use std::borrow::Cow;
-use internals::ast::structs::{HashValue, ArrayType, TOMLValue, Toml, TableType, Array, InlineTable,
-  ArrayValue, WSSep, TableKeyVal};
+use internals::ast::structs::{HashValue, ArrayType, TOMLValue, Toml, TableType, Array, InlineTable, ArrayValue, WSSep,
+                              TableKeyVal};
 use types::{ParseError, ParseResult, Value, Children};
 use internals::primitives::Key;
 use nom::IResult;
 
 pub struct Parser<'a> {
-	pub root: RefCell<Toml<'a>>,
-	pub map: HashMap<String, HashValue<'a>>,
-	pub errors: Rc<RefCell<Vec<ParseError<'a>>>>,
-	pub leftover: &'a str,
-	pub line_count: Cell<usize>,
-	pub last_array_tables: RefCell<Vec<Rc<TableType<'a>>>>,
-	pub last_array_tables_index: RefCell<Vec<usize>>,
-	pub keychain: RefCell<Vec<Key<'a>>>,
-	pub last_table: Option<Rc<TableType<'a>>>,
-	pub last_array_type: RefCell<Vec<ArrayType>>,
-	pub array_error: Cell<bool>,
-	pub mixed_array: Cell<bool>,
-	pub failure: Cell<bool>,
+  pub root: RefCell<Toml<'a>>,
+  pub map: HashMap<String, HashValue<'a>>,
+  pub errors: Rc<RefCell<Vec<ParseError<'a>>>>,
+  pub leftover: &'a str,
+  pub line_count: Cell<usize>,
+  pub last_array_tables: RefCell<Vec<Rc<TableType<'a>>>>,
+  pub last_array_tables_index: RefCell<Vec<usize>>,
+  pub keychain: RefCell<Vec<Key<'a>>>,
+  pub last_table: Option<Rc<TableType<'a>>>,
+  pub last_array_type: RefCell<Vec<ArrayType>>,
+  pub array_error: Cell<bool>,
+  pub mixed_array: Cell<bool>,
+  pub failure: Cell<bool>,
 }
 
 // TODO change this to return a parser result
 impl<'a> Parser<'a> {
-	pub fn new() -> Parser<'a> {
-		let mut map = HashMap::new();
-		map.insert("$Root$".to_string(), HashValue::none_keys());
-		Parser{ root: RefCell::new(Toml{ exprs: vec![] }), map: map,
-						errors: Rc::new(RefCell::new(vec![])), leftover: "",
-						line_count: Cell::new(1), last_array_tables: RefCell::new(vec![]),
-						last_array_tables_index: RefCell::new(vec![]),
-						last_table: None, last_array_type: RefCell::new(vec![]),
-						keychain: RefCell::new(vec![]), 
-						array_error: Cell::new(false), mixed_array: Cell::new(false),
-						failure: Cell::new(false)}
-	}
+  pub fn new() -> Parser<'a> {
+    let mut map = HashMap::new();
+    map.insert("$Root$".to_string(), HashValue::none_keys());
+    Parser{ root: RefCell::new(Toml{ exprs: vec![] }), map: map,
+            errors: Rc::new(RefCell::new(vec![])), leftover: "",
+            line_count: Cell::new(1), last_array_tables: RefCell::new(vec![]),
+            last_array_tables_index: RefCell::new(vec![]),
+            last_table: None, last_array_type: RefCell::new(vec![]),
+            keychain: RefCell::new(vec![]),
+            array_error: Cell::new(false), mixed_array: Cell::new(false),
+            failure: Cell::new(false)}
+  }
 
-	pub fn parse(mut self: Parser<'a>, input: &'a str) -> (Parser<'a>, ParseResult<'a>) {
-		let (tmp, res) = self.toml(input);
-		self = tmp;
+  pub fn parse(mut self: Parser<'a>, input: &'a str) -> (Parser<'a>, ParseResult<'a>) {
+    let (tmp, res) = self.toml(input);
+    self = tmp;
     let line_count = self.line_count.get();
     let leftover = self.leftover.into();
-		//let mut res = self.result;
-		match res {
-			IResult::Done(i, o) => {
-				*self.root.borrow_mut() = o;
-				self.leftover = i;
-			},
-			_ => return (self, ParseResult::Failure(line_count, 0)),
-		};
-		if self.leftover.len() > 0 {
+    // let mut res = self.result;
+    match res {
+      IResult::Done(i, o) => {
+        *self.root.borrow_mut() = o;
+        self.leftover = i;
+      },
+      _ => return (self, ParseResult::Failure(line_count, 0)),
+    };
+    if self.leftover.len() > 0 {
       let len = self.errors.borrow().len();
-			if len > 0 {
+      if len > 0 {
         let errors = self.errors.clone();
-				return (self, ParseResult::PartialError(leftover, line_count, 0, errors));
-			} else {
-				return (self, ParseResult::Partial(leftover, line_count, 0));
-			}
-		} else {
+        return (self, ParseResult::PartialError(leftover, line_count, 0, errors));
+      } else {
+        return (self, ParseResult::Partial(leftover, line_count, 0));
+      }
+    } else {
       let len = self.errors.borrow().len();
-			if len > 0 {
+      if len > 0 {
         let errors = self.errors.clone();
-				return (self, ParseResult::FullError(errors));
-			} else {
-				return (self, ParseResult::Full);
-			}
-		}
-	}
-    
+        return (self, ParseResult::FullError(errors));
+      } else {
+        return (self, ParseResult::Full);
+      }
+    }
+  }
+
   #[allow(dead_code)]
-	fn print_keys_and_values_debug(self: &Parser<'a>) {
+  fn print_keys_and_values_debug(self: &Parser<'a>) {
     let mut btree = BTreeMap::new();
-		for (k, v) in self.map.iter() {
+    for (k, v) in self.map.iter() {
       btree.insert(k, v);
-		}
+    }
     for (k, v) in btree.iter() {
       debug!("key: {} - {}", k, v);
     }
-	}
+  }
 
   #[allow(dead_code)]
-	fn print_keys_and_values(self: &Parser<'a>) {
+  fn print_keys_and_values(self: &Parser<'a>) {
     let mut btree = BTreeMap::new();
-		for (k, v) in self.map.iter() {
+    for (k, v) in self.map.iter() {
       btree.insert(k, v);
-		}
+    }
     for (k, v) in btree.iter() {
       println!("key: {} - {}", k, v);
     }
-	}
+  }
 
-	pub fn get_value<S>(self: &Parser<'a>, key: S) -> Option<Value<'a>> where S: Into<String> {
-		let s_key = key.into();
+  pub fn get_value<S>(self: &Parser<'a>, key: S) -> Option<Value<'a>> where S: Into<String> {
+    let s_key = key.into();
     if self.map.contains_key(&s_key) {
-			let hashval = self.map.get(&s_key).unwrap();
-			let clone = hashval.clone();
-			if let Some(val) = clone.value {
-				Some(to_val!(&*val.borrow()))
-			} else {
-				None
-			}
-		} else {
-			None
-		}
-	}
+      let hashval = self.map.get(&s_key).unwrap();
+      let clone = hashval.clone();
+      if let Some(val) = clone.value {
+        Some(to_val!(&*val.borrow()))
+      } else {
+        None
+      }
+    } else {
+      None
+    }
+  }
 
   pub fn get_children<S>(self: &Parser<'a>, key: S) -> Option<&Children> where S: Into<String> {
     let s_key = key.into();
@@ -126,7 +126,7 @@ impl<'a> Parser<'a> {
       None
     }
   }
-  
+
   pub fn set_value<S>(self: &mut Parser<'a>, key: S, val: Value<'a>) -> bool where S: Into<String> {
     let s_key = key.into();
     {
@@ -180,7 +180,7 @@ impl<'a> Parser<'a> {
     self.rebuild_vector(s_key.clone(), new_value_rc.clone(), true);
     true
   }
-  
+
   fn convert_vector(tval: &Value<'a>) -> Option<TOMLValue<'a>> {
     if !tval.validate() {
       return None;
@@ -256,7 +256,7 @@ impl<'a> Parser<'a> {
       },
     }
   }
-  
+
   fn same_structure(val_rf: &Rc<RefCell<TOMLValue<'a>>>, tval: &Value<'a>) -> bool {
     if !tval.validate() {
       return false;
@@ -296,7 +296,7 @@ impl<'a> Parser<'a> {
       (_,_)                           => return true,  // scalar replaced with any other scalar
     }
   }
-  
+
   fn rebuild_vector(self: &mut Parser<'a>, key: String, val: Rc<RefCell<TOMLValue<'a>>>, skip: bool) {
     match *val.borrow() {
       TOMLValue::Array(ref arr) => {
@@ -342,7 +342,7 @@ impl<'a> Parser<'a> {
       },
     }
   }
-  
+
   fn get_all_subkeys(self: &Parser<'a>, key: &str) -> Vec<String>{
     let hv_opt = self.map.get(key);
     let mut all_keys = vec![];
@@ -367,7 +367,7 @@ impl<'a> Parser<'a> {
     }
     all_keys
   }
-  
+
   fn replace_values(val_rf: &Rc<RefCell<TOMLValue<'a>>>, tval: &Value<'a>) -> bool {
     let value = match (&*val_rf.borrow(), tval) {
       (&TOMLValue::Array(ref arr), &Value::Array(ref t_arr)) => {
@@ -390,11 +390,11 @@ impl<'a> Parser<'a> {
         }
         return true;
       },
-      (_, &Value::Integer(ref v)) 	=> TOMLValue::Integer(v.clone()),
-      (_, &Value::Float(ref v))			=> TOMLValue::Float(v.clone()),
-      (_, &Value::Boolean(v)) 			=> TOMLValue::Boolean(v),
-      (_, &Value::DateTime(ref v))	=> TOMLValue::DateTime(v.clone()),
-      (_, &Value::String(ref s, t))	=> TOMLValue::String(s.clone(), t),
+      (_, &Value::Integer(ref v))   => TOMLValue::Integer(v.clone()),
+      (_, &Value::Float(ref v))     => TOMLValue::Float(v.clone()),
+      (_, &Value::Boolean(v))       => TOMLValue::Boolean(v),
+      (_, &Value::DateTime(ref v))  => TOMLValue::DateTime(v.clone()),
+      (_, &Value::String(ref s, t)) => TOMLValue::String(s.clone(), t),
       (v, tv)                             => panic!("Check for the same structure should have eliminated the possibility of replacing {} with {}", v, tv),
     };
     *val_rf.borrow_mut() = value;
@@ -402,26 +402,26 @@ impl<'a> Parser<'a> {
   }
 
   pub fn sanitize_array(arr: Rc<RefCell<Array<'a>>>) -> Value<'a> {
-		let mut result: Vec<Value> = vec![];
-		for av in arr.borrow().values.iter() {
-			result.push(to_val!(&*av.val.borrow()));
-		}
-		Value::Array(Rc::new(result))
-	}
-	
-	pub fn sanitize_inline_table(it: Rc<RefCell<InlineTable<'a>>>) -> Value<'a> {
-		let mut result: Vec<(Cow<'a, str>, Value)> = vec![];
-		for kv in it.borrow().keyvals.iter() {
-			result.push((kv.keyval.key.clone(), to_val!(&*kv.keyval.val.borrow())));
-		}
-		return Value::InlineTable(Rc::new(result));
-	}
+    let mut result: Vec<Value> = vec![];
+    for av in arr.borrow().values.iter() {
+      result.push(to_val!(&*av.val.borrow()));
+    }
+    Value::Array(Rc::new(result))
+  }
+
+  pub fn sanitize_inline_table(it: Rc<RefCell<InlineTable<'a>>>) -> Value<'a> {
+    let mut result: Vec<(Cow<'a, str>, Value)> = vec![];
+    for kv in it.borrow().keyvals.iter() {
+      result.push((kv.keyval.key.clone(), to_val!(&*kv.keyval.val.borrow())));
+    }
+    return Value::InlineTable(Rc::new(result));
+  }
 }
 
 impl<'a> Display for Parser<'a> {
-	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-		write!(f, "{}", *self.root.borrow())
-	}
+  fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    write!(f, "{}", *self.root.borrow())
+  }
 }
 
 #[cfg(test)]
@@ -458,7 +458,7 @@ properties = { color = "red", "plate number" = "ABC 345",
 "#;
     }
   }
-  
+
 
   #[test]
   fn test_bare_key() {
@@ -536,7 +536,7 @@ properties = { color = "red", "plate number" = "ABC 345",
     assert_eq!(p.get_value("car.owners[1].Name"), res2opt!(Value::literal_string("Jane Doe")));
     assert_eq!(p.get_value("car.owners[1].Age"), Some(Value::int(44)));
   }
-  
+
   #[test]
   fn test_get_root_children() {
     let _ = env_logger::init();
@@ -544,7 +544,7 @@ properties = { color = "red", "plate number" = "ABC 345",
     let (p, _) = p.parse(TT::get());
     assert_eq!(p.get_children(""), Some(&Children::Keys(RefCell::new(vec!["animal".to_string(), "car".to_string()]))));
   }
-  
+
   #[test]
   fn test_get_table_children() {
     let _ = env_logger::init();
@@ -555,7 +555,7 @@ properties = { color = "red", "plate number" = "ABC 345",
         "\"Date of Manufacture\"".to_string(), "drivers".to_string(), "properties".to_string(),
       ]))));
   }
-  
+
   #[test]
   fn test_get_array_children() {
     let _ = env_logger::init();
@@ -563,7 +563,7 @@ properties = { color = "red", "plate number" = "ABC 345",
     let (p, _) = p.parse(TT::get());
     assert_eq!(p.get_children("car.drivers"), Some(&Children::Count(Cell::new(5))));
   }
-  
+
   #[test]
   fn test_get_inline_table_children() {
     let _ = env_logger::init();
@@ -572,7 +572,7 @@ properties = { color = "red", "plate number" = "ABC 345",
     assert_eq!(p.get_children("car.properties"),
       Some(&Children::Keys(RefCell::new(vec!["color".to_string(), "\"plate number\"".to_string(), "accident_dates".to_string()]))));
   }
-  
+
   #[test]
   fn test_get_nested_inline_table_children() {
     let _ = env_logger::init();
@@ -581,7 +581,7 @@ properties = { color = "red", "plate number" = "ABC 345",
     assert_eq!(p.get_children("car.drivers[4]"),
       Some(&Children::Keys(RefCell::new(vec!["disallowed".to_string(), "banned".to_string()]))));
   }
-  
+
   #[test]
   fn test_get_nested_array_children() {
     let _ = env_logger::init();
@@ -589,7 +589,7 @@ properties = { color = "red", "plate number" = "ABC 345",
     let (p, _) = p.parse(TT::get());
     assert_eq!(p.get_children("car.properties.accident_dates"), Some(&Children::Count(Cell::new(3))));
   }
-  
+
   #[test]
   fn test_implicit_table_children() {
     let _ = env_logger::init();
@@ -598,7 +598,7 @@ properties = { color = "red", "plate number" = "ABC 345",
     assert_eq!(p.get_children("car.interior.seats"),
       Some(&Children::Keys(RefCell::new(vec!["type".to_string(), "count".to_string()]))));
   }
-  
+
   #[test]
   fn test_get_array_of_table_children() {
     let _ = env_logger::init();
@@ -606,7 +606,7 @@ properties = { color = "red", "plate number" = "ABC 345",
     let (p, _) = p.parse(TT::get());
     assert_eq!(p.get_children("car.owners"), Some(&Children::Count(Cell::new(2))));
   }
-  
+
   #[test]
   fn test_get_array_of_table0_children() {
     let _ = env_logger::init();
@@ -615,7 +615,7 @@ properties = { color = "red", "plate number" = "ABC 345",
     assert_eq!(p.get_children("car.owners[0]"),
       Some(&Children::Keys(RefCell::new(vec!["Name".to_string(), "Age".to_string()]))));
   }
-  
+
   #[test]
   fn test_get_array_of_table1_children() {
     let _ = env_logger::init();
@@ -624,7 +624,7 @@ properties = { color = "red", "plate number" = "ABC 345",
     assert_eq!(p.get_children("car.owners[1]"),
       Some(&Children::Keys(RefCell::new(vec!["Name".to_string(), "Age".to_string()]))));
   }
-  
+
   #[test]
   fn test_set_bare_key() {
     let _ = env_logger::init();
@@ -634,7 +634,7 @@ properties = { color = "red", "plate number" = "ABC 345",
     assert_eq!(p.get_value("animal"),
       Some(Value::String("shark".into(), StrType::MLBasic)));
   }
-  
+
   #[test]
   fn test_set_table_key() {
     let _ = env_logger::init();
@@ -644,7 +644,7 @@ properties = { color = "red", "plate number" = "ABC 345",
     assert_eq!(p.get_value("car.model"),
       Some(Value::String("Accord".into(), StrType::Literal)));
   }
-  
+
   #[test]
   fn test_set_array_element_key() {
     let _ = env_logger::init();
@@ -654,7 +654,7 @@ properties = { color = "red", "plate number" = "ABC 345",
     assert_eq!(p.get_value("car.drivers[1]"),
       Some(Value::String("Mark".into(), StrType::MLLiteral)));
   }
-  
+
   #[test]
   fn test_set_nested_aray_element_key() {
     let _ = env_logger::init();
@@ -664,7 +664,7 @@ properties = { color = "red", "plate number" = "ABC 345",
     assert_eq!(p.get_value("car.properties.accident_dates[2]"),
       Some(Value::Float("3443.34".into())));
   }
-  
+
   #[test]
   fn test_set_inline_table_element_key() {
     let _ = env_logger::init();
@@ -674,7 +674,7 @@ properties = { color = "red", "plate number" = "ABC 345",
     assert_eq!(p.get_value("car.properties.color"),
       Some(Value::Integer("19".into())));
   }
-  
+
   #[test]
   fn test_set_nested_inline_table_element_key() {
     let _ = env_logger::init();
@@ -685,7 +685,7 @@ properties = { color = "red", "plate number" = "ABC 345",
       Some(Value::DateTime(DateTime::new(Date::new_str("2013", "09", "23"),
         Some(Time::new_str("17", "34", "02", None, None))))));
   }
-  
+
   #[test]
   fn test_truncate_array() {
     let _ = env_logger::init();
@@ -701,7 +701,7 @@ properties = { color = "red", "plate number" = "ABC 345",
         ]
       ))));
   }
-  
+
   #[test]
   fn test_truncate_inline_table() {
     let _ = env_logger::init();
@@ -717,7 +717,7 @@ properties = { color = "red", "plate number" = "ABC 345",
              ("transmission".into(), Value::Boolean(true))]
       ))));
   }
-  
+
   #[test]
   fn test_extend_array() {
     let _ = env_logger::init();
@@ -740,7 +740,7 @@ properties = { color = "red", "plate number" = "ABC 345",
         ]
       ))));
   }
-  
+
   #[test]
   fn test_extend_inline_table() {
     let _ = env_logger::init();
@@ -760,7 +760,7 @@ properties = { color = "red", "plate number" = "ABC 345",
              ("prop4".into(), Value::Boolean(false))]
       ))));
   }
-  
+
   #[test]
   fn test_set_implicit_table_key() {
     let _ = env_logger::init();
@@ -770,7 +770,7 @@ properties = { color = "red", "plate number" = "ABC 345",
     assert_eq!(p.get_value("car.interior.seats.type"),
       Some(Value::String("leather".into(), StrType::Basic)));
   }
-  
+
   #[test]
   fn test_set_array_of_table0_key() {
     let _ = env_logger::init();
@@ -780,7 +780,7 @@ properties = { color = "red", "plate number" = "ABC 345",
     assert_eq!(p.get_value("car.owners[0].Age"),
       Some(Value::Float("19.5".into())));
   }
-  
+
   #[test]
   fn test_set_array_of_table1_key() {
     let _ = env_logger::init();
@@ -790,7 +790,7 @@ properties = { color = "red", "plate number" = "ABC 345",
     assert_eq!(p.get_value("car.owners[1].Name"),
       Some(Value::String("Steve Parker".into(), StrType::MLBasic)));
   }
-  
+
   #[test]
   fn test_truncate_array_check_keys() {
     let _ = env_logger::init();
@@ -803,7 +803,7 @@ properties = { color = "red", "plate number" = "ABC 345",
     assert_eq!(p.get_value("database.ports[2][0]"), None);
     assert_eq!(p.get_value("database.ports[2][1]"), None);
   }
-  
+
   #[test]
   fn test_truncate_inline_table_check_keys() {
     let _ = env_logger::init();

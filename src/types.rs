@@ -14,20 +14,20 @@ use nom::IResult;
 #[derive(Debug, Eq, PartialEq, Clone)]
 pub enum ParseResult<'a> {
   /// The entire input was parsed without error.
-	Full,
+  Full,
   /// The entire input was parsed, but there were errors. Contains an `Rc<RefCell<Vec>>` of `ParseError`s.
-	FullError(Rc<RefCell<Vec<ParseError<'a>>>>),
+  FullError(Rc<RefCell<Vec<ParseError<'a>>>>),
   /// Part of the input was parsed successfully without any errors. Contains a `Cow<str>`, with the leftover, unparsed
   /// input, the line number and column (currently column reporting is unimplemented and will always report `0`) where
   /// parsing stopped.
-	Partial(Cow<'a, str>, usize, usize),
+  Partial(Cow<'a, str>, usize, usize),
   /// Part of the input was parsed successfully with errors. Contains a `Cow<str>`, with the leftover, unparsed input,
   /// the line number and column (currently column reporting is unimplemented and will always report `0`) where parsing
   /// stopped, and an `Rc<RefCell<Vec>>` of `ParseError`s.
-	PartialError(Cow<'a, str>, usize, usize, Rc<RefCell<Vec<ParseError<'a>>>>),
+  PartialError(Cow<'a, str>, usize, usize, Rc<RefCell<Vec<ParseError<'a>>>>),
   /// The parser failed to parse any of the input as a complete TOML document. Contains the line number and column
   /// (currently column reporting is unimplemented and will always report `0`) where parsing stopped.
-	Failure(usize, usize),
+  Failure(usize, usize),
 }
 
 /// Represents a non-failure error encountered while parsing a TOML document.
@@ -37,16 +37,16 @@ pub enum ParseError<'a> {
   /// the line number and column (currently column reporting is unimplemented and will always report `0`) where the
   /// `Array` was found. The `Array` can be retrieved and/or changed by its key using `TOMLParser::get_value` and
   /// `TOMLParser::set_value` methods.
-	MixedArray(String, usize, usize),
+  MixedArray(String, usize, usize),
   /// A duplicate key was encountered. Contains the `String` key that was duplicated in the document, the line number
   /// and column (currently column reporting is unimplemented and will always report `0`) where the duplicate key was
   /// found, and the `Value` that the key points to.
-	DuplicateKey(String, usize, usize, Value<'a>),
+  DuplicateKey(String, usize, usize, Value<'a>),
   /// An invalid table was encountered. Either the key\[s\] that make up the table are invalid or a duplicate table was
   /// found. Contains the `String` key of the invalid table, the line number and column (currently column reporting is
   /// unimplemented and will always report `0`) where the invalid table was found, `RefCell<HashMap<String, Value>>`
   /// that contains all the keys and values belonging to that table.
-	InvalidTable(String, usize, usize, RefCell<HashMap<String, Value<'a>>>),
+  InvalidTable(String, usize, usize, RefCell<HashMap<String, Value<'a>>>),
   /// An invalid `DateTime` was encountered. This could be a `DateTime` with:
   ///
   /// * 0 for year
@@ -63,20 +63,20 @@ pub enum ParseError<'a> {
   /// invalid `DateTime` string.
   InvalidDateTime(String, usize, usize, Cow<'a, str>),
   /// *Currently unimplemented*. Reserved for future use when an integer overflow is detected.
-	IntegerOverflow(String, usize, usize, Cow<'a, str>),
+  IntegerOverflow(String, usize, usize, Cow<'a, str>),
   /// *Currently unimplemented*. Reserved for future use when an integer underflow is detected.
-	IntegerUnderflow(String, usize, usize, Cow<'a, str>),
+  IntegerUnderflow(String, usize, usize, Cow<'a, str>),
   /// *Currently unimplemented*. Reserved for future use when an invalid integer representation is detected.
-	InvalidInteger(String, usize, usize, Cow<'a, str>),
+  InvalidInteger(String, usize, usize, Cow<'a, str>),
   /// *Currently unimplemented*. Reserved for future use when a float value of infinity is detected.
-	Infinity(String, usize, usize, Cow<'a, str>),
+  Infinity(String, usize, usize, Cow<'a, str>),
   /// *Currently unimplemented*. Reserved for future use when a float value of negative infinity is detected.
-	NegativeInfinity(String, usize, usize, Cow<'a, str>),
+  NegativeInfinity(String, usize, usize, Cow<'a, str>),
   /// *Currently unimplemented*. Reserved for future use when a float string conversion to an `f64` would result in a loss
   /// of precision.
-	LossOfPrecision(String, usize, usize, Cow<'a, str>),
+  LossOfPrecision(String, usize, usize, Cow<'a, str>),
   /// *Currently unimplemented*. Reserved for future use when an invalid float representation is detected.
-	InvalidFloat(String, usize, usize, Cow<'a, str>),
+  InvalidFloat(String, usize, usize, Cow<'a, str>),
   /// *Currently unimplemented*. Reserved for future use when an invalid `true` or `false` string is detected.
   InvalidBoolean(String, usize, usize, Cow<'a, str>),
   /// *Currently unimplemented*. Reserved for future use when an invalid string representation is detected.
@@ -90,36 +90,36 @@ pub enum ParseError<'a> {
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum Value<'a> {
   /// An integer value. Contains a `Cow<str>` representing the integer since integers can contain underscores.
-	Integer(Cow<'a, str>),
+  Integer(Cow<'a, str>),
   /// A float value. Contains a `Cow<str>` representing the float since floats can be formatted many different ways and
   /// can contain underscores.
-	Float(Cow<'a, str>),
+  Float(Cow<'a, str>),
   /// A boolean value. Contains a `bool` value since only `true` and `false` are allowed.
-	Boolean(bool),
+  Boolean(bool),
   /// A `DateTime` value. Contains a `DateTime` struct that has a date and optionally a time, fractional seconds, and
   /// offset from UTC.
-	DateTime(DateTime<'a>),
+  DateTime(DateTime<'a>),
   /// A string value. Contains a `Cow<str>` with the string contents (without quotes) and `StrType` indicating whether
   /// the string is a basic string, multi-line basic string, literal string or multi-line literal string.
-	String(Cow<'a, str>, StrType),
+  String(Cow<'a, str>, StrType),
   /// An array value. Contains an `Rc<Vec>` of `Value`s contained in the `Array`.
-	Array(Rc<Vec<Value<'a>>>),
+  Array(Rc<Vec<Value<'a>>>),
   /// An inline table value. Contains an `Rc<Vec>` of tuples that contain a `Cow<str>` representing a key, and `Value`
   /// that the key points to.
-	InlineTable(Rc<Vec<(Cow<'a, str>, Value<'a>)>>)
+  InlineTable(Rc<Vec<(Cow<'a, str>, Value<'a>)>>)
 }
 
 /// Represents the 4 different types of strings that are allowed in TOML documents.
 #[derive(Debug, Eq, PartialEq, Copy, Clone)]
 pub enum StrType {
   /// String is a basic string.
-	Basic,
+  Basic,
   /// String is a multi-line basic string.
-	MLBasic,
+  MLBasic,
   /// String is a literal string.
-	Literal,
+  Literal,
   /// String is a multi-line literal string.
-	MLLiteral,
+  MLLiteral,
 }
 
 /// Represents the child keys of a key in a parsed TOML document.
@@ -269,45 +269,45 @@ impl Children {
 
 /// Formats a `Value` for display. Uses default rust formatting for for `i64` for `Integer`s, `f64` for `Float`s, bool
 /// for `Boolean`s. The default formatting for `Array`s and `InlineTable`s is No whitespace after/before
-/// opening/closing braces, no whitespace before and one space after all commas, no comments on the same line as the 
+/// opening/closing braces, no whitespace before and one space after all commas, no comments on the same line as the
 /// `Array` or `InlineTable`, and one space before and after an equals sign in an `InlineTable`.
 impl<'a> Display for Value<'a> {
-	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-		match self {
-			&Value::Integer(ref v) | &Value::Float(ref v) =>
-				write!(f, "{}", v),
-			&Value::Boolean(ref b) => write!(f, "{}", b),
-			&Value::DateTime(ref v) => write!(f, "{}", v),
-			&Value::Array(ref arr) => {
-				try!(write!(f, "["));
-				for i in 0..arr.len() - 1 {
-					try!(write!(f, "{}, ", arr[i]));
-				}
-				if arr.len() > 0 {
-					try!(write!(f, "{}", arr[arr.len()-1]));
-				}
-				write!(f, "]")
-			},
-			&Value::String(ref s, ref t) => {
-				match t {
-					&StrType::Basic => write!(f, "\"{}\"", s),
-					&StrType::MLBasic => write!(f, "\"\"\"{}\"\"\"", s),
-					&StrType::Literal => write!(f, "'{}'", s),
-					&StrType::MLLiteral =>  write!(f, "'''{}'''", s),
-				}
-			},
-			&Value::InlineTable(ref it) => {
-				try!(write!(f, "{{"));
-				for i in 0..it.len() - 1 {
-					try!(write!(f, "{} = {}, ", it[i].0, it[i].1));
-				}
-				if it.len() > 0 {
-					try!(write!(f, "{} = {}", it[it.len()-1].0, it[it.len()-1].1));
-				}
-				write!(f, "}}")
-			}
-		}
-	}
+  fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    match self {
+      &Value::Integer(ref v) | &Value::Float(ref v) =>
+        write!(f, "{}", v),
+      &Value::Boolean(ref b) => write!(f, "{}", b),
+      &Value::DateTime(ref v) => write!(f, "{}", v),
+      &Value::Array(ref arr) => {
+        try!(write!(f, "["));
+        for i in 0..arr.len() - 1 {
+          try!(write!(f, "{}, ", arr[i]));
+        }
+        if arr.len() > 0 {
+          try!(write!(f, "{}", arr[arr.len()-1]));
+        }
+        write!(f, "]")
+      },
+      &Value::String(ref s, ref t) => {
+        match t {
+          &StrType::Basic => write!(f, "\"{}\"", s),
+          &StrType::MLBasic => write!(f, "\"\"\"{}\"\"\"", s),
+          &StrType::Literal => write!(f, "'{}'", s),
+          &StrType::MLLiteral =>  write!(f, "'''{}'''", s),
+        }
+      },
+      &Value::InlineTable(ref it) => {
+        try!(write!(f, "{{"));
+        for i in 0..it.len() - 1 {
+          try!(write!(f, "{} = {}, ", it[i].0, it[i].1));
+        }
+        if it.len() > 0 {
+          try!(write!(f, "{} = {}", it[it.len()-1].0, it[it.len()-1].1));
+        }
+        write!(f, "}}")
+      }
+    }
+  }
 }
 
 impl<'a> Value<'a> {
@@ -319,7 +319,7 @@ impl<'a> Value<'a> {
   ///
   /// ```
   /// use tomllib::types::Value;
-  /// 
+  ///
   /// assert_eq!(Value::Integer("100".into()), Value::int(100));
   /// ```
   pub fn int(int: i64) -> Value<'a> {
@@ -333,7 +333,7 @@ impl<'a> Value<'a> {
   ///
   /// ```
   /// use tomllib::types::Value;
-  /// 
+  ///
   /// assert_eq!(Value::Integer("200".into()), Value::int_from_str("200").unwrap());
   /// ```
   pub fn int_from_str<S>(int: S) -> Result<Value<'a>, TOMLError> where S: Into<String> + Clone {
@@ -344,7 +344,7 @@ impl<'a> Value<'a> {
       return Result::Err(TOMLError::new(format!("Error parsing int. Argument: {}", int.into())));
     }
   }
-  
+
   /// Convenience function for creating a `Value::Float` from a `f64`. Cannot fail since `f64` maps directly onto TOML
   /// floats.
   ///
@@ -352,7 +352,7 @@ impl<'a> Value<'a> {
   ///
   /// ```
   /// use tomllib::types::Value;
-  /// 
+  ///
   /// assert_eq!(Value::Float("300.3".into()), Value::float(300.3));
   /// ```
   pub fn float(float: f64) -> Value<'a> {
@@ -367,7 +367,7 @@ impl<'a> Value<'a> {
   ///
   /// ```
   /// use tomllib::types::Value;
-  /// 
+  ///
   /// assert_eq!(Value::Float("400.4".into()), Value::float_from_str("400.4").unwrap());
   /// ```
   pub fn float_from_str<S>(float: S) -> Result<Value<'a>, TOMLError> where S: Into<String> + Clone {
@@ -378,7 +378,7 @@ impl<'a> Value<'a> {
       return Result::Err(TOMLError::new(format!("Error parsing float. Argument: {}", float.into())));
     }
   }
-  
+
   /// Convenience function for creating a `Value::Boolean` from a `bool`. Cannot fail since `bool` maps directly onto
   /// TOML booleans.
   ///
@@ -386,7 +386,7 @@ impl<'a> Value<'a> {
   ///
   /// ```
   /// use tomllib::types::Value;
-  /// 
+  ///
   /// assert_eq!(Value::Boolean(true), Value::bool(true));
   /// ```
   pub fn bool(b: bool) -> Value<'a> {
@@ -412,7 +412,7 @@ impl<'a> Value<'a> {
   ///
   /// ```
   /// use tomllib::types::{Value, DateTime, Date};
-  /// 
+  ///
   /// assert_eq!(Value::DateTime(DateTime::new(Date::from_str("2010", "04", "10").unwrap(), None)),
   ///   Value::date_from_int(2010, 4, 10).unwrap());
   /// ```
@@ -435,7 +435,7 @@ impl<'a> Value<'a> {
   ///
   /// ```
   /// use tomllib::types::{Value, DateTime, Date};
-  /// 
+  ///
   /// assert_eq!(Value::DateTime(DateTime::new(Date::from_str("2011", "05", "11").unwrap(), None)),
   ///   Value::date_from_str("2011", "05", "11").unwrap());
   /// ```
@@ -455,7 +455,7 @@ impl<'a> Value<'a> {
   ///
   /// ```
   /// use tomllib::types::{Value, DateTime, Date, Time};
-  /// 
+  ///
   /// assert_eq!(Value::DateTime(DateTime::new(Date::from_str("2010", "04", "10").unwrap(),
   ///   Some(Time::from_str("01", "02", "03", None, None).unwrap()))),
   ///   Value::datetime_from_int(2010, 4, 10, 1, 2, 3).unwrap());
@@ -485,7 +485,7 @@ impl<'a> Value<'a> {
   ///
   /// ```
   /// use tomllib::types::{Value, DateTime, Date, Time};
-  /// 
+  ///
   /// assert_eq!(Value::DateTime(DateTime::new(Date::from_str("2011", "05", "11").unwrap(),
   ///   Some(Time::from_str("02", "03", "04", None, None).unwrap()))),
   ///   Value::datetime_from_str("2011", "05", "11", "02", "03", "04").unwrap());
@@ -505,18 +505,18 @@ impl<'a> Value<'a> {
   /// Convenience function for creating a `Value::DateTime` containing a date and time with fractional seconds from
   /// integer values. Returns `Ok(DateTime)` on success and `Err(TOMLError)` on failure. Note, you can't represent
   /// leading zeros on the fractional part this way for example: `2016-03-15T08:05:22.00055` is not possible using this
-  /// function. 
+  /// function.
   ///
   /// # Examples
   ///
   /// ```
   /// use tomllib::types::{Value, DateTime, Date, Time};
-  /// 
+  ///
   /// assert_eq!(Value::DateTime(DateTime::new(Date::from_str("2010", "04", "10").unwrap(),
   ///   Some(Time::from_str("01", "02", "03", Some("5432".into()), None).unwrap()))),
   ///   Value::datetime_frac_from_int(2010, 4, 10, 1, 2, 3, 5432).unwrap());
   /// ```
-  pub fn datetime_frac_from_int(year: usize, month: usize, day: usize, hour: usize, minute: usize, second: usize, frac: usize) -> Result<Value<'a>, TOMLError> {  
+  pub fn datetime_frac_from_int(year: usize, month: usize, day: usize, hour: usize, minute: usize, second: usize, frac: usize) -> Result<Value<'a>, TOMLError> {
     let y = format!("{:0>4}", year);
     let m = format!("{:0>2}", month);
     let d = format!("{:0>2}", day);
@@ -542,7 +542,7 @@ impl<'a> Value<'a> {
   ///
   /// ```
   /// use tomllib::types::{Value, DateTime, Date, Time};
-  /// 
+  ///
   /// assert_eq!(Value::DateTime(DateTime::new(Date::from_str("2011", "05", "11").unwrap(),
   ///   Some(Time::from_str("02", "03", "04", Some("0043".into()), None).unwrap()))),
   ///   Value::datetime_frac_from_str("2011", "05", "11", "02", "03", "04", "0043").unwrap());
@@ -567,14 +567,14 @@ impl<'a> Value<'a> {
   ///
   /// ```
   /// use tomllib::types::{Value, DateTime, Date, Time, TimeOffset, TimeOffsetAmount};
-  /// 
+  ///
   /// assert_eq!(Value::DateTime(DateTime::new(Date::from_str("2010", "04", "10").unwrap(),
   ///   Some(Time::from_str("01", "02", "03", None, Some(TimeOffset::Time(TimeOffsetAmount::from_str(
   ///     "+", "08", "00"
   ///   ).unwrap()))).unwrap()))),
   ///   Value::datetime_offset_from_int(2010, 4, 10, 1, 2, 3, '+', 8, 0).unwrap());
   /// ```
-  pub fn datetime_offset_from_int(year: usize, month: usize, day: usize, hour: usize, minute: usize, second: usize, posneg: char, off_hour: usize, off_minute: usize) -> Result<Value<'a>, TOMLError> {  
+  pub fn datetime_offset_from_int(year: usize, month: usize, day: usize, hour: usize, minute: usize, second: usize, posneg: char, off_hour: usize, off_minute: usize) -> Result<Value<'a>, TOMLError> {
     let y = format!("{:0>4}", year);
     let m = format!("{:0>2}", month);
     let d = format!("{:0>2}", day);
@@ -608,7 +608,7 @@ impl<'a> Value<'a> {
   ///
   /// ```
   /// use tomllib::types::{Value, DateTime, Date, Time, TimeOffset, TimeOffsetAmount};
-  /// 
+  ///
   /// assert_eq!(Value::DateTime(DateTime::new(Date::from_str("2011", "05", "11").unwrap(),
   ///   Some(Time::from_str("02", "03", "04", None, Some(TimeOffset::Time(TimeOffsetAmount::from_str(
   ///     "+", "09", "30"
@@ -641,12 +641,12 @@ impl<'a> Value<'a> {
   ///
   /// ```
   /// use tomllib::types::{Value, DateTime, Date, Time, TimeOffset};
-  /// 
+  ///
   /// assert_eq!(Value::DateTime(DateTime::new(Date::from_str("2010", "04", "10").unwrap(),
   ///   Some(Time::from_str("01", "02", "03", None, Some(TimeOffset::Zulu)).unwrap()))),
   ///   Value::datetime_zulu_from_int(2010, 4, 10, 1, 2, 3).unwrap());
   /// ```
-  pub fn datetime_zulu_from_int(year: usize, month: usize, day: usize, hour: usize, minute: usize, second: usize) -> Result<Value<'a>, TOMLError> {  
+  pub fn datetime_zulu_from_int(year: usize, month: usize, day: usize, hour: usize, minute: usize, second: usize) -> Result<Value<'a>, TOMLError> {
     let y = format!("{:0>4}", year);
     let m = format!("{:0>2}", month);
     let d = format!("{:0>2}", day);
@@ -671,7 +671,7 @@ impl<'a> Value<'a> {
   ///
   /// ```
   /// use tomllib::types::{Value, DateTime, Date, Time, TimeOffset};
-  /// 
+  ///
   /// assert_eq!(Value::DateTime(DateTime::new(Date::from_str("2011", "05", "11").unwrap(),
   ///   Some(Time::from_str("02", "03", "04", None, Some(TimeOffset::Zulu)).unwrap()))),
   ///   Value::datetime_zulu_from_str("2011", "05", "11", "02", "03", "04").unwrap());
@@ -691,7 +691,7 @@ impl<'a> Value<'a> {
   }
 
   /// Convenience function for creating a `Value::DateTime` containing a date and time with fractional seconds and a
-  /// timezone of Zulu from integer values, except for the plus/minus sign which is passed as a string value `"+"` or 
+  /// timezone of Zulu from integer values, except for the plus/minus sign which is passed as a string value `"+"` or
   /// "-"`. Returns `Ok(DateTime)` on success and `Err(TOMLError)` on failure. Note, you can't represent leading zeros
   /// on the fractional part this way for example: `2016-03-15T08:05:22.00055Z` is not possible using this function.
   ///
@@ -699,12 +699,12 @@ impl<'a> Value<'a> {
   ///
   /// ```
   /// use tomllib::types::{Value, DateTime, Date, Time, TimeOffset};
-  /// 
+  ///
   /// assert_eq!(Value::DateTime(DateTime::new(Date::from_str("2010", "04", "10").unwrap(),
   ///   Some(Time::from_str("01", "02", "03", Some("5678".into()), Some(TimeOffset::Zulu)).unwrap()))),
   ///   Value::datetime_full_zulu_from_int(2010, 4, 10, 1, 2, 3, 5678).unwrap());
   /// ```
-  pub fn datetime_full_zulu_from_int(year: usize, month: usize, day: usize, hour: usize, minute: usize, second: usize, frac: u64) -> Result<Value<'a>, TOMLError> {  
+  pub fn datetime_full_zulu_from_int(year: usize, month: usize, day: usize, hour: usize, minute: usize, second: usize, frac: u64) -> Result<Value<'a>, TOMLError> {
     let y = format!("{:0>4}", year);
     let m = format!("{:0>2}", month);
     let d = format!("{:0>2}", day);
@@ -730,7 +730,7 @@ impl<'a> Value<'a> {
   ///
   /// ```
   /// use tomllib::types::{Value, DateTime, Date, Time, TimeOffset};
-  /// 
+  ///
   /// assert_eq!(Value::DateTime(DateTime::new(Date::from_str("2011", "05", "11").unwrap(),
   ///   Some(Time::from_str("02", "03", "04", None, Some(TimeOffset::Zulu)).unwrap()))),
   ///   Value::datetime_zulu_from_str("2011", "05", "11", "02", "03", "04").unwrap());
@@ -753,20 +753,20 @@ impl<'a> Value<'a> {
   /// timezone offset from UTC from integer values, except for the plus/minus sign which is passed as a char `"+"` or
   /// `"-"`. Returns `Ok(DateTime)` on success and `Err(TOMLError)` on failure. Note, you can't represent
   /// leading zeros on the fractional part this way for example: `2016-03-15T08:05:22.00055-11:00` is not possible using
-  /// this function. 
+  /// this function.
   ///
   /// # Examples
   ///
   /// ```
   /// use tomllib::types::{Value, DateTime, Date, Time, TimeOffset, TimeOffsetAmount};
-  /// 
+  ///
   /// assert_eq!(Value::DateTime(DateTime::new(Date::from_str("2010", "04", "10").unwrap(),
   ///   Some(Time::from_str("01", "02", "03", Some("135".into()), Some(TimeOffset::Time(TimeOffsetAmount::from_str(
   ///     "-", "11", "00"
   ///   ).unwrap()))).unwrap()))),
   ///   Value::datetime_full_from_int(2010, 4, 10, 1, 2, 3, 135, '-', 11, 0).unwrap());
   /// ```
-  pub fn datetime_full_from_int(year: usize, month: usize, day: usize, hour: usize, minute: usize, second: usize, frac: u64, posneg: char, off_hour: usize, off_minute: usize) -> Result<Value<'a>, TOMLError> {  
+  pub fn datetime_full_from_int(year: usize, month: usize, day: usize, hour: usize, minute: usize, second: usize, frac: u64, posneg: char, off_hour: usize, off_minute: usize) -> Result<Value<'a>, TOMLError> {
     let y = format!("{:0>4}", year);
     let m = format!("{:0>2}", month);
     let d = format!("{:0>2}", day);
@@ -801,14 +801,14 @@ impl<'a> Value<'a> {
   ///
   /// ```
   /// use tomllib::types::{Value, DateTime, Date, Time, TimeOffset, TimeOffsetAmount};
-  /// 
+  ///
   /// assert_eq!(Value::DateTime(DateTime::new(Date::from_str("2011", "05", "11").unwrap(),
   ///   Some(Time::from_str("02", "03", "04", Some("0864".into()), Some(TimeOffset::Time(TimeOffsetAmount::from_str(
   ///     "+", "09", "30"
   ///   ).unwrap()))).unwrap()))),
   ///   Value::datetime_full_from_str("2011", "05", "11", "02", "03", "04", "0864","+", "09", "30").unwrap());
   /// ```
-  pub fn datetime_full_from_str<S>(year: S, month: S, day: S, hour: S, minute: S, second: S, frac: S, posneg: S, off_hour: S, off_minute: S) -> Result<Value<'a>, TOMLError> where S: Into<String> + Clone { 
+  pub fn datetime_full_from_str<S>(year: S, month: S, day: S, hour: S, minute: S, second: S, frac: S, posneg: S, off_hour: S, off_minute: S) -> Result<Value<'a>, TOMLError> where S: Into<String> + Clone {
     match Date::from_str(year.clone().into(), month.clone().into(), day.clone().into()) {
       Ok(date) => {
         match TimeOffsetAmount::from_str(posneg.clone().into(), off_hour.clone().into(), off_minute.clone().into()) {
@@ -833,7 +833,7 @@ impl<'a> Value<'a> {
   ///
   /// ```
   /// use tomllib::types::{Value, DateTime, Date, Time, TimeOffset, TimeOffsetAmount};
-  /// 
+  ///
   /// assert_eq!(Value::DateTime(DateTime::new(Date::from_str("2012", "06", "12").unwrap(),
   ///   Some(Time::from_str("02", "03", "04", Some("0864".into()), Some(TimeOffset::Time(TimeOffsetAmount::from_str(
   ///     "+", "10", "30"
@@ -863,7 +863,7 @@ impl<'a> Value<'a> {
   ///
   /// ```
   /// use tomllib::types::{Value, StrType};
-  /// 
+  ///
   /// assert_eq!(Value::String("foobar".into(), StrType::Basic), Value::basic_string("foobar").unwrap());
   /// ```
   pub fn basic_string<S>(s: S) -> Result<Value<'a>, TOMLError> where S: Into<String> + Clone {
@@ -882,7 +882,7 @@ impl<'a> Value<'a> {
   ///
   /// ```
   /// use tomllib::types::{Value, StrType};
-  /// 
+  ///
   /// assert_eq!(Value::String("foo\nbar".into(), StrType::MLBasic), Value::ml_basic_string("foo\nbar").unwrap());
   /// ```
   pub fn ml_basic_string<S>(s: S) -> Result<Value<'a>, TOMLError> where S: Into<String> + Clone {
@@ -901,7 +901,7 @@ impl<'a> Value<'a> {
   ///
   /// ```
   /// use tomllib::types::{Value, StrType};
-  /// 
+  ///
   /// assert_eq!(Value::String("\"foobar\"".into(), StrType::Literal), Value::literal_string("\"foobar\"").unwrap());
   /// ```
   pub fn literal_string<S>(s: S) -> Result<Value<'a>, TOMLError> where S: Into<String> + Clone {
@@ -920,7 +920,7 @@ impl<'a> Value<'a> {
   ///
   /// ```
   /// use tomllib::types::{Value, StrType};
-  /// 
+  ///
   /// assert_eq!(Value::String("\"foo\nbar\"".into(), StrType::MLLiteral),
   ///   Value::ml_literal_string("\"foo\nbar\"").unwrap());
   /// ```
@@ -932,7 +932,7 @@ impl<'a> Value<'a> {
       return Result::Err(TOMLError::new(format!("Error parsing string as ml_literal_string. Argument: {}", s.into())));
     }
   }
-  
+
   /// Parses and validates a `Value`, returns true if the value is valid and false if it is invalid.
   ///
   /// # Examples
@@ -1011,7 +1011,7 @@ impl Error for TOMLError {
   /// use tomllib::types::Value;
   ///
   /// if let Err(toml_err) = Value::basic_string("foo\n") {
-  ///   println!("{}", toml_err.description()); 
+  ///   println!("{}", toml_err.description());
   /// }
   /// # else {
   /// #   assert!(false);
@@ -1049,11 +1049,11 @@ pub enum PosNeg {
 
 impl Display for PosNeg {
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-  	match self {
-  		&PosNeg::Pos => write!(f, "+"),
-  		&PosNeg::Neg => write!(f, "-"),
-  	}
-  	
+    match self {
+      &PosNeg::Pos => write!(f, "+"),
+      &PosNeg::Neg => write!(f, "-"),
+    }
+
   }
 }
 
@@ -1062,27 +1062,27 @@ impl Display for PosNeg {
 pub enum TimeOffset<'a> {
   // Timezone [Zulu](https://en.wikipedia.org/wiki/List_of_military_time_zones), also known as Greenwich Mean Time or
   // Coordinated Universal Time (UTC).
-	Zulu,
+  Zulu,
   // Contains a `TimeOffsetAmount` with the hours and minutes offset from UTC.
-	Time(TimeOffsetAmount<'a>),
+  Time(TimeOffsetAmount<'a>),
 }
 
 impl<'a> PartialEq for TimeOffset<'a> {
-	fn eq(&self, other: &TimeOffset<'a>) -> bool {
-		match (self, other) {
-			(&TimeOffset::Zulu, &TimeOffset::Zulu) => true,
-			(&TimeOffset::Time(ref i), &TimeOffset::Time(ref j)) if(i == j) => true,
-			_ => false
-		}
-	}
+  fn eq(&self, other: &TimeOffset<'a>) -> bool {
+    match (self, other) {
+      (&TimeOffset::Zulu, &TimeOffset::Zulu) => true,
+      (&TimeOffset::Time(ref i), &TimeOffset::Time(ref j)) if(i == j) => true,
+      _ => false
+    }
+  }
 }
 
 impl<'a> Display for TimeOffset<'a> {
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-  	match self {
-  		&TimeOffset::Zulu => write!(f, "Z"),
-  		&TimeOffset::Time(ref t) => write!(f, "{}", t),
-  	}
+    match self {
+      &TimeOffset::Zulu => write!(f, "Z"),
+      &TimeOffset::Time(ref t) => write!(f, "{}", t),
+    }
   }
 }
 
@@ -1099,24 +1099,24 @@ impl<'a> TimeOffset<'a> {
 #[derive(Debug, Eq, Clone)]
 pub struct TimeOffsetAmount<'a> {
   /// Represents whether the offset is positive or negative.
-	pub pos_neg: PosNeg,
+  pub pos_neg: PosNeg,
   /// Represents the number of hours that time is offset from UTC.Must be 2 decimal digits between 0 23 inclusive.
-	pub hour: Cow<'a, str>,
+  pub hour: Cow<'a, str>,
   /// Represents the number of minutes that time is offset from UTC. Must be 2 decimal digits between 0 59 inclusive.
-	pub minute: Cow<'a, str>,
+  pub minute: Cow<'a, str>,
 }
 
 impl<'a> PartialEq for TimeOffsetAmount<'a> {
-	fn eq(&self, other: &TimeOffsetAmount<'a>) -> bool {
-		self.pos_neg == other.pos_neg &&
-		self.hour == other.hour &&
-		self.minute == other.minute
-	}
+  fn eq(&self, other: &TimeOffsetAmount<'a>) -> bool {
+    self.pos_neg == other.pos_neg &&
+    self.hour == other.hour &&
+    self.minute == other.minute
+  }
 }
 
 impl<'a> Display for TimeOffsetAmount<'a> {
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-  	write!(f, "{}{}:{}", self.pos_neg, &self.hour, &self.minute)
+    write!(f, "{}{}:{}", self.pos_neg, &self.hour, &self.minute)
   }
 }
 
@@ -1131,12 +1131,12 @@ impl<'a> TimeOffsetAmount<'a> {
   /// let offset = TimeOffsetAmount::from_str("-", "04", "00").unwrap();
   /// ```
   pub fn from_str<S>(pos_neg: S, hour: S, minute: S) -> Result<TimeOffsetAmount<'a>, TOMLError> where S: Into<String>{
-  	let pn = match pos_neg.into().as_ref() {
-  		"+" => PosNeg::Pos,
-  		"-"	=> PosNeg::Neg,
+    let pn = match pos_neg.into().as_ref() {
+      "+" => PosNeg::Pos,
+      "-" => PosNeg::Neg,
       _   => return Result::Err(TOMLError::new("pos_neg value is neither a '+' or a '-'.".to_string())),
-  	};
-  	let offset = TimeOffsetAmount{pos_neg: pn, hour: hour.into().into(), minute: minute.into().into()};
+    };
+    let offset = TimeOffsetAmount{pos_neg: pn, hour: hour.into().into(), minute: minute.into().into()};
     if offset.validate() {
       return Result::Ok(offset);
     } else {
@@ -1162,7 +1162,7 @@ impl<'a> TimeOffsetAmount<'a> {
     }
     return self.validate_numbers();
    }
-   
+
   fn validate_numbers(&self) -> bool {
     if let Ok(h) = usize::from_str(&self.hour) {
       if h > 23 {
@@ -1187,25 +1187,25 @@ impl<'a> TimeOffsetAmount<'a> {
 #[derive(Debug, Eq, Clone)]
 pub struct Date<'a> {
   /// Represents the year of a date. Must be 4 decimal digits greater than 0".
-	pub year: Cow<'a, str>,
+  pub year: Cow<'a, str>,
   /// Represents the month of a date. Must be 2 decimal digits greater than 0 less than 13.
-	pub month: Cow<'a, str>,
+  pub month: Cow<'a, str>,
   /// Represents the day of a date. Must be 2 decimal digits greater than 0less than 28, 29, 30, or 31 depending on the
   /// month and whether the year is a leap year.
-	pub day: Cow<'a, str>,
+  pub day: Cow<'a, str>,
 }
 
 impl<'a> PartialEq for Date<'a> {
-	fn eq(&self, other: &Date<'a>) -> bool {
-		self.year == other.year &&
-		self.month == other.month &&
-		self.day == other.day
-	}
+  fn eq(&self, other: &Date<'a>) -> bool {
+    self.year == other.year &&
+    self.month == other.month &&
+    self.day == other.day
+  }
 }
 
 impl<'a> Display for Date<'a> {
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-  	write!(f, "{}-{}-{}", self.year, self.month, self.day)
+    write!(f, "{}-{}-{}", self.year, self.month, self.day)
   }
 }
 
@@ -1246,7 +1246,7 @@ impl<'a> Date<'a> {
     }
     return self.validate_numbers();
   }
-  
+
   fn validate_numbers(&self) -> bool {
     if let Ok(y) = usize::from_str(&self.year) {
       if y == 0 || y > 9999{
@@ -1300,33 +1300,33 @@ pub struct Time<'a> {
   /// Represents the hour of the time. Must be 2 decimal digits between 0 and 23 inclusive.
   pub hour: Cow<'a, str>,
   /// Represents the minute of the time. Must be 2 decimal digits between 0 and 59 inclusive.
-	pub minute: Cow<'a, str>,
+  pub minute: Cow<'a, str>,
   /// Represent the second of the time. Must be 2 decimal digits between 0 and 59 inclusive.
-	pub second: Cow<'a, str>,
+  pub second: Cow<'a, str>,
   /// Optional fraction of a second of the time. Can be an arbitrary number of decimal digits.
-	pub fraction: Option<Cow<'a, str>>,
+  pub fraction: Option<Cow<'a, str>>,
   /// Optional time zone offset.
-	pub offset: Option<TimeOffset<'a>>,
+  pub offset: Option<TimeOffset<'a>>,
 }
 
 impl<'a> PartialEq for Time<'a> {
-	fn eq(&self, other: &Time<'a>) -> bool {
-		self.hour == other.hour &&
-		self.minute == other.minute &&
-		self.second == other.second &&
-		self.fraction == other.fraction &&
-		self.offset == other.offset
-	}
+  fn eq(&self, other: &Time<'a>) -> bool {
+    self.hour == other.hour &&
+    self.minute == other.minute &&
+    self.second == other.second &&
+    self.fraction == other.fraction &&
+    self.offset == other.offset
+  }
 }
 
 impl<'a> Display for Time<'a> {
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-  	match (&self.fraction, &self.offset) {
-  		(&Some(ref frac), &Some(ref offset)) 	=> write!(f, "T{}:{}:{}.{}{}", self.hour, self.minute, self.second, frac, offset),
-  		(&Some(ref frac), &None) 							=> write!(f, "T{}:{}:{}.{}", self.hour, self.minute, self.second, frac),
-  		(&None, &Some(ref offset)) 						=> write!(f, "T{}:{}:{}{}", self.hour, self.minute, self.second, offset),
-  		(&None, &None) 												=> write!(f, "T{}:{}:{}", self.hour, self.minute, self.second),
-  	}
+    match (&self.fraction, &self.offset) {
+      (&Some(ref frac), &Some(ref offset))  => write!(f, "T{}:{}:{}.{}{}", self.hour, self.minute, self.second, frac, offset),
+      (&Some(ref frac), &None)              => write!(f, "T{}:{}:{}.{}", self.hour, self.minute, self.second, frac),
+      (&None, &Some(ref offset))            => write!(f, "T{}:{}:{}{}", self.hour, self.minute, self.second, offset),
+      (&None, &None)                        => write!(f, "T{}:{}:{}", self.hour, self.minute, self.second),
+    }
   }
 }
 
@@ -1340,19 +1340,19 @@ impl<'a> Time<'a> {
   ///
   /// let time = Time::from_str("19", "33", "02", None, None).unwrap();
   /// ```
-  pub fn from_str<S>(hour: S, minute: S, second: S, fraction: Option<S>, offset: Option<TimeOffset<'a>>) 
-  	-> Result<Time<'a>, TOMLError> where S: Into<String> {
-  	if let Some(s) = fraction {
-  		let time = Time{hour: hour.into().into(), minute: minute.into().into(), second: second.into().into(),
-  			fraction: Some(s.into().into()), offset: offset};
+  pub fn from_str<S>(hour: S, minute: S, second: S, fraction: Option<S>, offset: Option<TimeOffset<'a>>)
+    -> Result<Time<'a>, TOMLError> where S: Into<String> {
+    if let Some(s) = fraction {
+      let time = Time{hour: hour.into().into(), minute: minute.into().into(), second: second.into().into(),
+        fraction: Some(s.into().into()), offset: offset};
       if time.validate() {
         return Ok(time);
       } else {
         return Err(TOMLError::new("Error validating Time.".to_string()));
       }
-  	} else {
-  		let time = Time{hour: hour.into().into(), minute: minute.into().into(), second: second.into().into(),
-  			fraction: None, offset: offset};
+    } else {
+      let time = Time{hour: hour.into().into(), minute: minute.into().into(), second: second.into().into(),
+        fraction: None, offset: offset};
       if time.validate() {
         return Ok(time);
       } else {
@@ -1379,9 +1379,9 @@ impl<'a> Time<'a> {
     if self.hour.len() != 2 || self.minute.len() != 2 || self.second.len() != 2 {
       return false;
     }
-    return self.validate_numbers(); 
+    return self.validate_numbers();
   }
-  
+
   fn validate_numbers(&self) -> bool {
     if let Ok(h) = usize::from_str(&self.hour) {
       if h > 23 {
@@ -1421,32 +1421,32 @@ impl<'a> Time<'a> {
 /// Represents a`DateTime` including the `Date` and optional `Time`
 #[derive(Debug, Eq, Clone)]
 pub struct DateTime<'a> {
-	pub date: Date<'a>,
-	pub time: Option<Time<'a>>,
+  pub date: Date<'a>,
+  pub time: Option<Time<'a>>,
 }
 
 impl<'a> PartialEq for DateTime<'a> {
-	fn eq(&self, other: &DateTime<'a>) -> bool {
-		self.date == other.date &&
-		self.time == other.time
-	}
+  fn eq(&self, other: &DateTime<'a>) -> bool {
+    self.date == other.date &&
+    self.time == other.time
+  }
 }
 
 impl<'a> Display for DateTime<'a> {
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-  	match &self.time {
-  		&Some(ref time) => write!(f, "{}{}", self.date, time),
-  		&None => write!(f, "{}", self.date),
-  	}
+    match &self.time {
+      &Some(ref time) => write!(f, "{}{}", self.date, time),
+      &None => write!(f, "{}", self.date),
+    }
   }
 }
 
 // <hour>:<minute>:<second>(.<fraction>)?
 impl<'a> DateTime<'a> {
-	pub fn new(date: Date<'a>, time: Option<Time<'a>>) -> DateTime<'a> {
-		DateTime{date: date, time: time}
-	}
-  
+  pub fn new(date: Date<'a>, time: Option<Time<'a>>) -> DateTime<'a> {
+    DateTime{date: date, time: time}
+  }
+
   /// Validates a created `DateTime`.
   ///
   /// # Examples
@@ -1486,7 +1486,7 @@ mod test {
   fn test_combine_keys_index() {
     assert_eq!("foo.bar[9]".to_string(), Children::combine_keys_index("foo.bar", 9));
   }
-  
+
   #[test]
   fn test_combine_child_keys() {
     let kids = Children::Keys(RefCell::new(vec!["baz".to_string(), "qux".to_string(), "plugh".to_string(),
@@ -1494,7 +1494,7 @@ mod test {
     assert_eq!(vec!["foo.bar.baz".to_string(), "foo.bar.qux".to_string(), "foo.bar.plugh".to_string(),
       "foo.bar.thud".to_string()], kids.combine_child_keys("foo.bar".to_string()));
   }
-  
+
   #[test]
   fn test_combine_child_keys_empty_base() {
     let kids = Children::Keys(RefCell::new(vec!["baz".to_string(), "qux".to_string(), "plugh".to_string(),
@@ -1502,14 +1502,14 @@ mod test {
     assert_eq!(vec!["baz".to_string(), "qux".to_string(), "plugh".to_string(),
       "thud".to_string()], kids.combine_child_keys("".to_string()));
   }
-  
+
   #[test]
   fn test_combine_child_keys_index() {
     let kids = Children::Count(Cell::new(3));
     assert_eq!(vec!["foo.bar[0]".to_string(), "foo.bar[1]".to_string(), "foo.bar[2]".to_string()],
       kids.combine_child_keys("foo.bar".to_string()));
   }
-  
+
   #[test]
   fn test_value_display() {
     let val_int = Value::Integer("7778877".into());
@@ -1533,7 +1533,7 @@ mod test {
         ("baz".into(), Value::Boolean(false)), ("qux".into(), Value::Integer("2016".into())),
       ]))), ("plugh".into(), Value::Float("3333.444".into()))
     ]));
-    
+
     assert_eq!("7778877", &format!("{}", val_int));
     assert_eq!("1929.345", &format!("{}", val_float));
     assert_eq!("true", &format!("{}", val_true));
@@ -1547,58 +1547,58 @@ mod test {
     assert_eq!("{foo = true, bar = {baz = false, qux = 2016}, plugh = 3333.444}",
       &format!("{}", val_inline_table));
   }
-  
+
   #[test]
   fn test_create_int() {
     assert_eq!(Value::Integer("9223372036854775807".into()), Value::int(9223372036854775807));
   }
-  
+
   #[test]
   fn test_create_int_from_str() {
     assert_eq!(Value::Integer("-9223372036854775808".into()), Value::int_from_str("-9223372036854775808").unwrap());
   }
-  
+
   #[test]
   fn test_create_int_from_str_fail() {
     assert!(Value::int_from_str("q-9223$37(203)[]M807").is_err());
   }
-  
+
   #[test]
   fn test_create_float() {
     assert_eq!(Value::Float("179769000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000".into()), Value::float(1.79769e+308));
   }
-  
+
   #[test]
   fn test_create_float_from_str() {
     assert_eq!(Value::Float("2.22507e-308".into()), Value::float_from_str("2.22507e-308").unwrap());
   }
-  
+
   #[test]
   fn test_create_float_from_str_fail() {
     assert!(Value::float_from_str("q2.3e++10eipi").is_err());
   }
-  
+
   #[test]
   fn test_create_bool() {
     assert_eq!(Value::Boolean(false), Value::bool(false));
   }
-  
+
   #[test]
   fn test_create_bool_from_str() {
     assert_eq!(Value::Boolean(true), Value::bool_from_str("TrUe").unwrap());
   }
-  
+
   #[test]
   fn test_create_bool_from_str_fail() {
     assert!(Value::bool_from_str("TFraulese").is_err());
   }
-  
+
   #[test]
   fn test_create_date_from_int() {
     assert_eq!(Value::DateTime(DateTime::new(Date::new_str("2012", "01", "03"), None)),
       Value::date_from_int(2012, 1, 3).unwrap());
   }
-  
+
   #[test]
   fn test_create_date_from_int_fail() {
     assert!(Value::date_from_int(0, 2, 20).is_err());
@@ -1611,13 +1611,13 @@ mod test {
     assert!(Value::date_from_int(1900, 2, 29).is_err());
     assert!(Value::date_from_int(2000, 2, 30).is_err());
   }
-  
+
   #[test]
   fn test_create_date_from_str() {
     assert_eq!(Value::DateTime(DateTime::new(Date::new_str("2012", "01", "03"), None)),
       Value::date_from_str("2012", "01", "03").unwrap());
   }
-  
+
   #[test]
   fn test_create_date_from_str_fail() {
     assert!(Value::date_from_str("12345", "01", "01").is_err());
@@ -1630,28 +1630,28 @@ mod test {
     assert!(Value::date_from_str("2016", "1", "01").is_err());
     assert!(Value::date_from_str("2016", "01", "1").is_err());
   }
-  
+
   #[test]
   fn test_create_datetime_from_int() {
     assert_eq!(Value::DateTime(DateTime::new(Date::new_str("2012", "01", "03"), Some(Time::new_str(
       "03", "30", "30", None, None
     )))), Value::datetime_from_int(2012, 1, 3, 3, 30, 30).unwrap());
   }
-  
+
   #[test]
   fn test_create_datetime_from_int_fail() {
     assert!(Value::datetime_from_int(2012, 1, 3, 24, 30, 30).is_err());
     assert!(Value::datetime_from_int(2012, 1, 3, 3, 60, 30).is_err());
     assert!(Value::datetime_from_int(2012, 1, 3, 3, 30, 60).is_err());
   }
-  
+
   #[test]
   fn test_create_datetime_from_str() {
     assert_eq!(Value::DateTime(DateTime::new(Date::new_str("2012", "01", "03"), Some(Time::new_str(
       "03", "30", "30", None, None
     )))), Value::datetime_from_str("2012", "01", "03", "03", "30", "30").unwrap());
   }
-  
+
   #[test]
   fn test_create_datetime_from_str_fail() {
     assert!(Value::datetime_from_str("2012", "01", "03", "3", "30", "30").is_err());
@@ -1663,31 +1663,31 @@ mod test {
     assert!(Value::datetime_from_str("2012", "01", "03", "03", "3q", "30").is_err());
     assert!(Value::datetime_from_str("2012", "01", "03", "03", "30", "3q").is_err());
   }
-  
+
   #[test]
   fn test_create_datetime_frac_from_int() {
     assert_eq!(Value::DateTime(DateTime::new(Date::new_str("2012", "01", "03"), Some(Time::new_str(
       "03", "30", "30", Some("3030"), None
     )))), Value::datetime_frac_from_int(2012, 1, 3, 3, 30, 30, 3030).unwrap());
   }
-  
+
   #[test]
   fn test_create_datetime_frac_from_int_fail() {
     assert!(Value::datetime_frac_from_int(2012, 1, 0, 3, 30, 30, 3030).is_err());
   }
-  
+
   #[test]
   fn test_create_datetime_frac_from_str() {
     assert_eq!(Value::DateTime(DateTime::new(Date::new_str("2012", "01", "03"), Some(Time::new_str(
       "03", "30", "30", Some("3030"), None
     )))), Value::datetime_frac_from_str("2012", "01", "03", "03", "30", "30", "3030").unwrap());
   }
-  
+
   #[test]
   fn test_create_datetime_frac_from_str_fail() {
     assert!(Value::datetime_frac_from_str("2012", "01", "03", "03", "30", "30", "q3030").is_err());
   }
-  
+
   #[test]
   fn test_create_datetime_offset_from_int() {
     assert_eq!(Value::DateTime(DateTime::new(Date::new_str("2012", "01", "03"), Some(Time::new_str(
@@ -1696,14 +1696,14 @@ mod test {
       )))
     )))), Value::datetime_offset_from_int(2012, 1, 3, 3, 30, 30, '+', 7, 45).unwrap());
   }
-  
+
   #[test]
   fn test_create_datetime_offset_from_int_fail() {
     assert!(Value::datetime_offset_from_int(2012, 1, 3, 3, 30, 30, 'q', 7, 45).is_err());
     assert!(Value::datetime_offset_from_int(2012, 1, 3, 3, 30, 30, '+', 24, 45).is_err());
     assert!(Value::datetime_offset_from_int(2012, 1, 3, 3, 30, 30, '+', 7, 60).is_err());
   }
-  
+
   #[test]
   fn test_create_datetime_offset_from_str() {
     assert_eq!(Value::DateTime(DateTime::new(Date::new_str("2012", "01", "03"), Some(Time::new_str(
@@ -1712,7 +1712,7 @@ mod test {
       )))
     )))), Value::datetime_offset_from_str("2012", "01", "03", "03", "30", "30", "+", "07", "45").unwrap());
   }
-  
+
   #[test]
   fn test_create_datetime_offset_from_str_fail() {
     assert!(Value::datetime_offset_from_str("2012", "01", "03", "03", "30", "30", "+", "077", "45").is_err());
@@ -1721,55 +1721,55 @@ mod test {
     assert!(Value::datetime_offset_from_str("2012", "01", "03", "03", "30", "30", "+", "07", "5").is_err());
     assert!(Value::datetime_offset_from_str("2012", "01", "03", "03", "30", "30", "q", "07", "45").is_err());
   }
-  
+
   #[test]
   fn test_create_datetime_zulu_from_int() {
     assert_eq!(Value::DateTime(DateTime::new(Date::new_str("2012", "01", "03"), Some(Time::new_str(
       "03", "30", "30", None, Some(TimeOffset::Zulu)
     )))), Value::datetime_zulu_from_int(2012, 1, 3, 3, 30, 30).unwrap());
   }
-  
+
   #[test]
   fn test_create_datetime_zulu_from_int_fail() {
     assert!(Value::datetime_zulu_from_int(2012, 1, 0, 3, 30, 30).is_err());
   }
-  
+
   #[test]
   fn test_create_datetime_zulu_from_str() {
     assert_eq!(Value::DateTime(DateTime::new(Date::new_str("2012", "01", "03"), Some(Time::new_str(
       "03", "30", "30", None, Some(TimeOffset::Zulu)
     )))), Value::datetime_zulu_from_str("2012", "01", "03", "03", "30", "30").unwrap());
   }
-  
+
   #[test]
   fn test_create_datetime_zulu_from_str_fail() {
     assert!(Value::datetime_zulu_from_str("q2012", "01", "03", "03", "30", "30").is_err());
   }
-  
+
   #[test]
   fn test_create_datetime_full_zulu_from_int() {
     assert_eq!(Value::DateTime(DateTime::new(Date::new_str("2012", "01", "03"), Some(Time::new_str(
       "03", "30", "30", Some("3030"), Some(TimeOffset::Zulu)
     )))), Value::datetime_full_zulu_from_int(2012, 1, 3, 3, 30, 30, 3030).unwrap());
   }
-  
+
   #[test]
   fn test_create_datetime_full_zulu_from_int_fail() {
     assert!(Value::datetime_full_zulu_from_int(2012, 1, 0, 3, 30, 30, 3030).is_err());
   }
-  
+
   #[test]
   fn test_create_datetime_full_zulu_from_str() {
     assert_eq!(Value::DateTime(DateTime::new(Date::new_str("2012", "01", "03"), Some(Time::new_str(
       "03", "30", "30", Some("3030"), Some(TimeOffset::Zulu)
     )))), Value::datetime_full_zulu_from_str("2012", "01", "03", "03", "30", "30", "3030").unwrap());
   }
-  
+
   #[test]
   fn test_create_datetime_full_zulu_from_str_fail() {
     assert!(Value::datetime_full_zulu_from_str("q2012", "01", "03", "03", "30", "30", "3030").is_err());
   }
-  
+
   #[test]
   fn test_create_datetime_full_from_int() {
     assert_eq!(Value::DateTime(DateTime::new(Date::new_str("2012", "01", "03"), Some(Time::new_str(
@@ -1778,7 +1778,7 @@ mod test {
       )))
     )))), Value::datetime_full_from_int(2012, 1, 3, 3, 30, 30, 3030, '+', 7, 45).unwrap());
   }
-  
+
   #[test]
   fn test_create_datetime_full_from_int_fail() {
     assert!(Value::datetime_full_from_int(2012, 1, 0, 3, 30, 30, 3030, '+', 7, 45).is_err());
@@ -1787,7 +1787,7 @@ mod test {
     assert!(Value::datetime_full_from_int(2012, 1, 0, 3, 30, 30, 3030, '+', 25, 45).is_err());
     assert!(Value::datetime_full_from_int(2012, 1, 0, 3, 30, 30, 3030, 'q', 7, 45).is_err());
   }
-  
+
   #[test]
   fn test_create_datetime_full_from_str() {
     assert_eq!(Value::DateTime(DateTime::new(Date::new_str("2012", "01", "03"), Some(Time::new_str(
@@ -1796,13 +1796,13 @@ mod test {
       )))
     )))), Value::datetime_full_from_str("2012", "01", "03", "03", "30", "30", "3030", "+", "07", "45").unwrap());
   }
-  
+
   #[test]
   fn test_create_datetime_full_from_str_fail() {
     assert!(Value::datetime_full_from_str("2012", "01", "03", "03", "30", "30", "q3030", "+", "07", "45").is_err());
     assert!(Value::datetime_full_from_str("2012", "01", "03", "03", "30", "30", "3030", "q", "07", "45").is_err());
   }
-  
+
   #[test]
   fn test_datetime_parse() {
     assert_eq!(Value::DateTime(DateTime::new(Date::new_str("2012", "01", "03"), Some(Time::new_str(
@@ -1810,29 +1810,29 @@ mod test {
         "+", "07", "45"
       )))
     )))), Value::datetime_parse("2012-01-03T03:30:30.3030+07:45").unwrap());
-    
+
     assert_eq!(Value::DateTime(DateTime::new(Date::new_str("2012", "01", "03"), Some(Time::new_str(
       "03", "30", "30", Some("3030"), Some(TimeOffset::Zulu)
     )))), Value::datetime_parse("2012-01-03T03:30:30.3030Z").unwrap());
-    
+
     assert_eq!(Value::DateTime(DateTime::new(Date::new_str("2012", "01", "03"), Some(Time::new_str(
       "03", "30", "30", None, Some(TimeOffset::Zulu)
     )))), Value::datetime_parse("2012-01-03T03:30:30Z").unwrap());
-    
+
     assert_eq!(Value::DateTime(DateTime::new(Date::new_str("2012", "01", "03"), Some(Time::new_str(
       "03", "30", "30", None, Some(TimeOffset::Time(TimeOffsetAmount::new_str(
         "+", "07", "45"
       )))
     )))), Value::datetime_parse("2012-01-03T03:30:30+07:45").unwrap());
-    
+
     assert_eq!(Value::DateTime(DateTime::new(Date::new_str("2012", "01", "03"), Some(Time::new_str(
       "03", "30", "30", None, None
     )))), Value::datetime_parse("2012-01-03T03:30:30").unwrap());
-    
+
     assert_eq!(Value::DateTime(DateTime::new(Date::new_str("2012", "01", "03"), None
     )), Value::datetime_parse("2012-01-03").unwrap());
   }
-  
+
   #[test]
   fn test_datetime_parse_fail() {
     assert!(Value::datetime_parse("012-01-03T03:30:30.3030+07:45").is_err());
@@ -1862,48 +1862,48 @@ mod test {
     assert!(Value::datetime_parse("2012-01-03T03:30:30.3030q07:45").is_err());
     assert!(Value::datetime_parse("2012-01-03T03:30:30.3030+07q45").is_err());
   }
-  
+
   #[test]
   fn test_create_basic_string() {
     assert_eq!(Value::String("foobar".into(), StrType::Basic), Value::basic_string("foobar").unwrap());
   }
-  
+
   #[test]
   fn test_create_basic_string_fail() {
     assert!(Value::basic_string("foo\nbar").is_err());
   }
-  
+
   #[test]
   fn test_create_ml_basic_string() {
     assert_eq!(Value::String("foobar".into(), StrType::MLBasic), Value::ml_basic_string("foobar").unwrap());
   }
-  
+
   #[test]
   fn test_create_ml_basic_string_fail() {
     assert!(Value::ml_basic_string(r#"foo\qbar"#).is_err());
   }
-  
+
   #[test]
   fn test_create_literal_string() {
     assert_eq!(Value::String("foobar".into(), StrType::Literal), Value::literal_string("foobar").unwrap());
   }
-  
+
   #[test]
   fn test_create_literal_string_fail() {
     assert!(Value::literal_string(r#"foo
 bar"#).is_err());
   }
-  
+
   #[test]
   fn test_create_ml_literal_string() {
     assert_eq!(Value::String("foobar".into(), StrType::MLLiteral), Value::ml_literal_string("foobar").unwrap());
   }
-  
+
   #[test]
   fn test_create_ml_literal_string_fail() {
     // This string contains an invisible 0xC char between foo and bar. It's visible in
     // Sublime Text, but not in VS Code
     assert!(Value::ml_literal_string("foobar").is_err());
   }
-  
+
 }

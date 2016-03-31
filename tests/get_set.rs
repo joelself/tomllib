@@ -215,7 +215,7 @@ fn test_basic_get_on_mixed_tables() {
 
   let parser = TOMLParser::new();
   let (parser, _) = parser.parse(TT::get());
-  
+
   // test getting bare key
   assert_eq!(Value::basic_string("halibut").unwrap(), parser.get_value("fish").unwrap());
   // test table key lookup
@@ -327,8 +327,8 @@ fn test_basic_set_then_get_on_mixed_tables() {
   assert!(parser.set_value("foo.\"bar\"[2].array", Value::Array(Rc::new(vec![
     Value::int(3), Value::int(4), Value::int(5), Value::int(6), Value::int(7)
   ]))));
-  
-  
+
+
   // test getting bare key
   assert_eq!(Value::int(1), parser.get_value("fish").unwrap());
   // test table key lookup
@@ -340,7 +340,7 @@ fn test_basic_set_then_get_on_mixed_tables() {
   assert_eq!(Value::Boolean(true), parser.get_value("foo.\"bar\"[0].qux").unwrap());
   assert_eq!(Value::Boolean(false), parser.get_value("foo.\"bar\"[1].baz").unwrap());
   assert_eq!(Value::basic_string("ONE").unwrap(), parser.get_value("foo.\"bar\"[1].qux").unwrap());
-  //Test sibling array of tables
+  // Test sibling array of tables
   assert_eq!(Value::date_from_int(2000, 1, 1).unwrap(), parser.get_value("foo.quality[0].furniture").unwrap());
   // Test standard table nested in array of tables
   assert_eq!(Value::datetime_from_int(2001, 2, 2, 1, 1, 1).unwrap(), parser.get_value("foo.quality[0].machine.parts.service.\"ƥèřïôδ\"").unwrap());

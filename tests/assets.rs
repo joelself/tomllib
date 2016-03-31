@@ -29,7 +29,7 @@ fn verify_invalid(input: String) -> (bool, Option<(String, String)>) {
 }
 
 fn test_all_assets(valid: bool) {
-	let paths;
+  let paths;
   if valid {
     paths = fs::read_dir("./assets/valid/").unwrap();
   } else {
@@ -83,25 +83,25 @@ fn test_all_assets(valid: bool) {
     for &(ref filename, ref in_out) in &failed {
       let s;
       match in_out {
-        &Some((ref input, ref output)) =>
-        { if valid {
-          s = format!("Failed to correctly parse file \"{}\".\nExpected:\n\"{}\"\nGot:\n\"{}\"", filename, input, output);
-        } else {
-          s = format!("Successfully parsed invalid file \"{}\".\nInvalid input:\n\"{}\"", filename, input)
-        }
-      },
-      &None => {
-        if valid {
-          s = format!("Failed to correctly parse file \"{}\"",filename);
-        } else {
-          s = format!("Successfully parsed invalid file \"{}\"", filename)
-        }
-      },
+        &Some((ref input, ref output)) => {
+          if valid {
+            s = format!("Failed to correctly parse file \"{}\".\nExpected:\n\"{}\"\nGot:\n\"{}\"", filename, input, output);
+          } else {
+            s = format!("Successfully parsed invalid file \"{}\".\nInvalid input:\n\"{}\"", filename, input)
+          }
+        },
+        &None => {
+          if valid {
+            s = format!("Failed to correctly parse file \"{}\"",filename);
+          } else {
+            s = format!("Successfully parsed invalid file \"{}\"", filename)
+          }
+        },
+      }
+      panic_string.push_str(&s);
     }
-    panic_string.push_str(&s);
+    assert!(false, panic_string);
   }
-  assert!(false, panic_string);
-}
 }
 
 #[test]
