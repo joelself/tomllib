@@ -1,5 +1,5 @@
 ![tomllib logo](https://dislocal.com/wp-content/uploads/2016/01/tomllib_logo1.svg)          ![tomlkit logo](https://dislocal.com/wp-content/uploads/2016/01/tomlkit_logo1.svg)
-## The first release (0.1.1) is out! Git it on [crates.io](https://crates.io/crates/tomllib)!
+## The first release (0.1.1) is out! Get it on [crates.io](https://crates.io/crates/tomllib)!
 #### I wrote a blog post about my adventures in creating method macros in __nom__. [Give it a read](https://wp.me/p7ikGY-3g)!
 ## `tomllib` is a parser, modifier, and generator for TOML files ***that doesn't judge you***! 
 
