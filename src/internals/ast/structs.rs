@@ -86,7 +86,7 @@ impl<'a> NLExpression<'a> {
 #[derive(Debug, Eq)]
 pub struct Expression<'a> {
   pub ws: WSSep<'a>,
-  pub keyval: Option<KeyVal<'a>>,
+  pub keyval: Option<Rc<KeyVal<'a>>>,
   pub table: Option<Rc<TableType<'a>>>,
   pub comment: Option<Comment<'a>>,
 }
@@ -453,6 +453,7 @@ pub fn format_tt_keys(tabletype: &TableType) -> String {
 #[derive(Debug, Eq)]
 pub struct Table<'a> {
   pub keys: Vec<WSKeySep<'a>>,
+  pub kvps: Vec<KeyVal<'a>>,
 }
 
 impl<'a> PartialEq for Table<'a> {

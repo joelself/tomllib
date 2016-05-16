@@ -6,8 +6,8 @@ use std::cell::{Cell, RefCell};
 use std::rc::Rc;
 use std::borrow::Cow;
 use internals::ast::structs::{HashValue, ArrayType, TOMLValue, Toml, TableType, Array, InlineTable, ArrayValue, WSSep,
-                              TableKeyVal};
-use types::{ParseError, ParseResult, Value, Children};
+                              TableKeyVal, KeyVal};
+use types::{ParseError, ParseResult, Value, Children, Table, Kvp};
 use internals::primitives::Key;
 use nom::IResult;
 
@@ -20,10 +20,12 @@ pub struct Parser<'a> {
   pub last_array_tables: RefCell<Vec<Rc<TableType<'a>>>>,
   pub last_array_tables_index: RefCell<Vec<usize>>,
   pub keychain: RefCell<Vec<Key<'a>>>,
+  pub no_table: Vec<Rc<KeyVal<'a>>>,
   pub last_table: Option<Rc<TableType<'a>>>,
   pub last_array_type: RefCell<Vec<ArrayType>>,
   pub array_error: Cell<bool>,
   pub mixed_array: Cell<bool>,
+  pub in_inline_table: Vec<bool>,
   pub failure: Cell<bool>,
 }
 
@@ -38,7 +40,9 @@ impl<'a> Parser<'a> {
             last_array_tables_index: RefCell::new(vec![]),
             last_table: None, last_array_type: RefCell::new(vec![]),
             keychain: RefCell::new(vec![]),
+            no_table: vec![],
             array_error: Cell::new(false), mixed_array: Cell::new(false),
+            in_inline_table: false,
             failure: Cell::new(false)}
   }
 
@@ -415,6 +419,26 @@ impl<'a> Parser<'a> {
       result.push((kv.keyval.key.clone(), to_val!(&*kv.keyval.val.borrow())));
     }
     return Value::InlineTable(Rc::new(result));
+  }
+
+  pub fn get_tables_full(self: &Parser<'a>,) -> Vec<Table> {
+    let all_tables = vec![];
+    let cur_table = Table{key: None, kvps: vec![]};
+    let root_borrow = self.root.borrow();
+    for expr in root_borrow.exprs.iter() {
+      if let Some(table_key) = expr.expr.table {
+        if cur_table.key.is_some() || cur_table.kvps.len() > 0 {
+          all_tables.push(cur_table);
+        }
+        cur_table = Table{key: Some(table_key), kvps: vec![]};
+      } else if let Some(keyval) = expr.expr.keyval {
+        cur_table.kvps.push(Kvp{key: keyval.key, val: to_val!(&*keyval.val.borrow())});
+      }
+    }
+    if cur_table.key.is_some() || cur_table.kvps.len() > 0 {
+      all_tables.push(cur_table);
+    }
+    all_tables
   }
 }
 

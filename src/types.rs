@@ -109,6 +109,16 @@ pub enum Value<'a> {
   InlineTable(Rc<Vec<(Cow<'a, str>, Value<'a>)>>)
 }
 
+pub struct Kvp<'a> {
+  key: Cow<'a, str>,
+  value: Value<'a>,
+}
+
+pub struct Table<'a> {
+  key: Option<Cow<'a, str>>,
+  kvps: Vec<Kvp<'a>>,
+}
+
 /// Represents the 4 different types of strings that are allowed in TOML documents.
 #[derive(Debug, Eq, PartialEq, Copy, Clone)]
 pub enum StrType {

@@ -563,7 +563,13 @@ impl<'a> Parser<'a> {
     )
   );
 
-  method!(table_keyval<Parser<'a>, &'a str, TableKeyVal>, mut self,
+  pub fn table_keyval(mut self: Parser<'a>, input:   &'a str) -> (Parser<'a>, IResult<&'a str, TableKeyVal>) {
+    self.in_inline_table.set(self.in_inline_table.get() + 1);
+    let (tmp, res) = self.table_keyval_internal(input);
+    self = tmp;
+    self.in_inline_table.set(self.in_inline_table.get() - 1);
+  }
+  method!(table_keyval_internal<Parser<'a>, &'a str, TableKeyVal>, mut self,
         chain!(
        keyval: call_m!(self.keyval)                     ~
    keyval_sep: complete!(call_m!(self.array_sep))?      ~

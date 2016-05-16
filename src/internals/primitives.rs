@@ -618,6 +618,17 @@ impl<'a> Parser<'a> {
             _ => self.insert_keyval_into_map(res.val.clone()),
           }
         }
+        if self.in_inline_table.get() == 0 {
+          if let Some(table_type) = self.last_table {
+            match table_type {
+              TableType::Standard(table) | TableType::Array(table) => {
+                table.kvps.push(Rc::new(res));
+              }
+            }
+          } else {
+            self.no_table.push(Rc::new(res));
+          }
+        }
         self.keychain.borrow_mut().pop();
         res
       }

@@ -84,7 +84,7 @@ pub mod types;
 
 use std::fmt;
 use std::fmt::Display;
-use types::{ParseResult, Value, Children};
+use types::{ParseResult, Value, Children, Table};
 use internals::parser::Parser;
 
 /// A parser, manipulator, and outputter of TOML documents.
@@ -212,6 +212,10 @@ impl<'a> TOMLParser<'a> {
   /// ```
   pub fn get_children<S>(self: &TOMLParser<'a>, key: S) -> Option<&Children> where S: Into<String> {
     self.parser.get_children(key)
+  }
+
+  pub fn get_tables_full(self: &TOMLParser<'a>) -> Vec<Table> {
+    self.parser.get_tables_full()
   }
 }
 
