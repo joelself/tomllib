@@ -7,6 +7,18 @@ use pirate::{Matches, Match, Vars, matches, usage, vars};
 use tomllib::TOMLParser;
 use tomllib::types::ParseResult;
 
+macro_rules! usage(
+  ($tval:expr) => (
+    usage($tval);
+    return;
+  );
+  ($submac:ident!( $($args:tt)* ), $tval:expr) => (
+    $submac!($($args)*);
+    usage($tval);
+    return;
+  );
+);
+
 fn main() {
   let options = vec![
     "Required arguments",
@@ -47,19 +59,16 @@ fn main() {
   let matches: Matches = match matches(&args, &mut vars) {
     Ok(m) => m,
     Err(e) => {
-      println!("Error: {}", e);
-      usage(&vars);
-      return;
+      usage!(println!("Error: {}", e), &vars);
     }
   };
 
   if matches.has_match("help") {
-    usage(&vars);
-    return;
+    usage!(&vars);
   }
   let mut true_val = &"true".to_string();
   let mut false_val = &"false".to_string();
-  let mut output: String = "".to_string();
+  let mut output = String::new();
 
   // The file we're operating on
   let mut file = String::new();
@@ -73,73 +82,101 @@ fn main() {
         _ => ()
       }
     } else {
-      println!("Error: A required argument is missing for f/file.");
-      usage(&vars);
+      usage!(println!("Error: A required argument is missing for f/file."), &vars);
     }
-  } else
+  } else {
+    println!("Error: -f/--file is a required argument.");
+    return;
+  }
+
+  // Parse the document
+  let parser: TOMLParser = TOMLParser::new();
+  let (parser, result) = parser.parse(&file);
+  match result {
+    ParseResult::Partial(_,_,_) => {
+      println!("Error: Document only partially parsed. Please correct any errors before trying again.");
+      return;
+    },
+    ParseResult::PartialError(_,_,_,_) => {
+      println!("Error: Document only partially parsed with errors. Please correct any errors before trying again.");
+      return;
+    },
+    ParseResult::Failure(_,_) => {
+      println!("Error: Completely failed to parse document. Please correct any error before trying again.");
+      return;
+    },
+    _ => (), // If verbose output Full or FullError
+  }
+
 
   // Pre-command options
   if matches.has_match("set-true") {
     if let Some(t) = matches.get("set-true") {
       true_val = t;
     } else {
-      println!("Error: A required argument is missing for set-true.");
-      usage(&vars);
+      usage!(println!("Error: A required argument is missing for set-true."), &vars);
     }
   } else if matches.has_match("set-false") {
     if let Some(f) = matches.get("set-false") {
       false_val = f;
     } else {
-      println!("Error: A required argument is missing for set-false.");
-      usage(&vars);
+      usage!(println!("Error: A required argument is missing for set-false."), &vars);
     }
   }
 
   // Commands only one command allowed per invocation for this version
   if matches.has_match("get-value") {
     if let Some(k) = matches.get("get-value") {
-      output = get_value(k);
+      if let Some(val) = get_value(k, &parser) {
+        output = val;
+      }
     } else {
-      println!("Error: A required argument is missing for g/get-value.");
-      usage(&vars);
+      usage!(println!("Error: A required argument is missing for g/get-value."), &vars);
     }
   } else if matches.has_match("has-value") {
     if let Some(k) = matches.get("has-value") {
-      output = has_value(k, true_val, false_val);
+      if let Some(val) = has_value(k, &parser, true_val, false_val) {
+        output = val;
+      }
     } else {
-      println!("Error: A required argument is missing for has-value.");
-      usage(&vars);
+      usage!(println!("Error: A required argument is missing for has-value."), &vars);
     }
   } else if matches.has_match("get-children") {
-    if let Some(v) = matches.get("get-children") {
-      output = get_children(v);
+    if let Some(k) = matches.get("get-children") {
+      if let Some(c) = get_children(k, &parser) {
+        output = c;
+      }
     } else {
-      println!("Error: A required argument is missing for c/get-children.");
-      usage(&vars);
+      usage!(println!("Error: A required argument is missing for c/get-children."), &vars);
     }
   } else if matches.has_match("has-children") {
     if let Some(k) = matches.get("has-children") {
-      output = has_children(k, true_val, false_val);
+      if let Some(c) = has_children(k, &parser, true_val, false_val) {
+        output = c;
+      }
     } else {
-      println!("Error: A required argument is missing for has-children.");
-      usage(&vars);
+      usage!(println!("Error: A required argument is missing for has-children."), &vars);
     }
   } else if matches.has_match("set-value") {
     if let Some(kv) = matches.get("set-value") {
-      output = set_value(kv);
+      if let Some(out) = set_value(kv, &parser) {
+        output = out;
+      }
     } else {
-      println!("Error: A required argument is missing for s/set-value.");
-      usage(&vars);
+      usage!(println!("Error: A required argument is missing for s/set-value."), &vars);
     }
   } else {
     // No command specified print usage
-    usage(&vars);
-    return;
+    usage!(&vars);
   }
+
+  // ************** Print output here! *******************
+  println!("{}", output);
 
   // Post-command options
   if matches.has_match("print-doc") {
-    print_doc(&output);
+    println!("\n>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>DOCUMENT<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n");
+    print_doc(&parser);
   }
 }
 
@@ -156,26 +193,30 @@ fn get_file(file_path: &String, out_file: &mut String) -> Result<usize, Error> {
   }
 }
 
-fn get_value(key: &String) -> String {
+fn get_value(key: &str, doc: &TOMLParser) -> Option<String> {
+  if let Some(value) = doc.get_value(key) {
+    return Some(format!("{}", value));
+  }
+  None
+}
+
+fn has_value(key: &str, doc: &TOMLParser, true_val: &String, false_val: &String) -> Option<String> {
   unimplemented!();
 }
 
-fn has_value(key: &String, true_val: &String, false_val: &String) -> String {
+fn get_children(key: &str, doc: &TOMLParser) -> Option<String> {
   unimplemented!();
 }
 
-fn get_children(key: &String) -> String {
+fn has_children(key: &str, doc: &TOMLParser, true_val: &String, false_val: &String) -> Option<String> {
   unimplemented!();
 }
 
-fn has_children(key: &String, true_val: &String, false_val: &String) -> String {
+fn set_value(key: &str, doc: &TOMLParser) -> Option<String> {
   unimplemented!();
 }
 
-fn set_value(key: &String) -> String {
-  unimplemented!();
-}
-
-fn print_doc(doc: &String) {
-  unimplemented!();
+fn print_doc(doc: &TOMLParser) {
+  //unimplemented!();
+  println!("{}", doc);
 }
