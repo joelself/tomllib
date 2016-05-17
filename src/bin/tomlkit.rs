@@ -6,7 +6,8 @@ use std::env;
 use std::io::{Read, BufReader, Error};
 use pirate::{Matches, Match, Vars, matches, usage, vars};
 use tomllib::TOMLParser;
-use tomllib::types::{ParseResult, Children};
+use tomllib::types::{ParseResult, Children, Value, TOMLError, TimeOffset, DateTime, Date, Time, TimeOffsetAmount,
+                     PosNeg};
 use csv::Reader;
 
 macro_rules! usage(
@@ -92,8 +93,8 @@ fn main() {
   }
 
   // Parse the document
-  let parser: TOMLParser = TOMLParser::new();
-  let (parser, result) = parser.parse(&file);
+  let mut parser: TOMLParser = TOMLParser::new();
+  let (mut parser, result) = parser.parse(&file);
   match result {
     ParseResult::Partial(_,_,_) => {
       println!("Error: Document only partially parsed. Please correct any errors before trying again.");
@@ -158,7 +159,7 @@ fn main() {
     }
   } else if matches.has_match("set-value") {
     if let Some(kv) = matches.get("set-value") {
-      if let Some(out) = set_value(kv, &parser) {
+      if let Some(out) = set_value(kv, &mut parser) {
         output = out;
       }
     } else {
@@ -245,14 +246,101 @@ fn has_children(key: &str, doc: &TOMLParser, true_val: &String, false_val: &Stri
   return false_val.clone();
 }
 
-fn set_value(keyvals: &str, doc: &TOMLParser) -> Option<String> {
-  println!("Called set_value with these keyvals: \"{:?}\"", csv_to_vec(keyvals));
+fn set_value<'a>(kvs: &str, doc: &mut TOMLParser) -> Option<String> {
+  let keyval_results = csv_to_vec(kvs);
+  if let Ok(keyvals) = keyval_results {
+    if keyvals.len() % 3 != 0 || keyvals.len() == 0 {
+      return None;
+    }
+    for i in 0..keyvals.len() / 3 {
+      let key: &str = &keyvals[i];
+      let val: &str = &keyvals[i+1];
+      let typ: &str = &keyvals[i+2];
+      let val_result: Result<Value, TOMLError>;
+      match typ {
+        "basic-string" | "bs" => val_result = Value::basic_string(val),
+        "ml-basic-string" | "mbs" => val_result = Value::ml_basic_string(val),
+        "literal-string" | "ls" => val_result = Value::literal_string(val),
+        "ml-literal-string" | "mls" => val_result = Value::ml_literal_string(val),
+        "integer" | "int" => val_result = Value::int_from_str(val),
+        "float" | "flt" => val_result = Value::float_from_str(val),
+        "boolean" | "bool" => val_result = Value::bool_from_str(val),
+        "datetime" | "dt" => {
+          let str_val: &str = &val;
+          let tmp_result = Value::datetime_parse(str_val);
+          let mut new_dt: DateTime = DateTime{date: Date{year: "".into(), month: "".into(), day: "".into()}, time: None};
+          let (mut year, mut month, mut day, mut hour, mut minute, mut second, mut fraction) = ("".into(), "".into(),
+            "".into(), "".into(), "".into(), "".into(), "".into());
+          let (mut off_hour, mut off_minute, mut pos_neg) = ("".into(), "".into(), PosNeg::Pos);
+          let (mut has_time, mut has_fraction, mut has_offset) = (false, false, false);
+          if let Ok(dtval) = tmp_result {
+            if let Value::DateTime(dt) = dtval {
+              year = dt.date.year.to_string().into();
+              month = dt.date.month.to_string().into();
+              day = dt.date.day.to_string().into();
+              if let Some(ref time) = dt.time {
+                has_time = true;
+                hour = time.hour.to_string().into();
+                minute = time.minute.to_string().into();
+                second = time.second.to_string().into();
+                if let Some(ref frac) = time.fraction {
+                  has_fraction = true;
+                  fraction = frac.to_string().into();
+                }
+                if let Some(ref offset) = time.offset {
+                  if let &TimeOffset::Time(ref amount) = offset {
+                    has_offset = true;
+                    pos_neg = amount.pos_neg;
+                    off_hour = amount.hour.to_string().into();
+                    off_minute = amount.minute.to_string().into();
+                  }
+                }
+              }
+
+              let newoffset = if has_offset {
+                Some(TimeOffset::Time(TimeOffsetAmount{pos_neg: pos_neg, hour: off_hour, minute: off_minute}))
+              } else {
+                None
+              };
+              let newfraction = if has_fraction {
+                Some(fraction)
+              } else {
+                None
+              };
+              let newtime = if has_time {
+                Some(Time{hour: hour, minute: minute, second: second, fraction: newfraction, offset: newoffset})
+              } else {
+                None
+              };
+              new_dt = DateTime{
+                date: Date{
+                  year: year,
+                  month: month,
+                  day: day,
+                },
+                time: newtime,
+              };
+            }
+            val_result = Ok(Value::DateTime(new_dt));
+          } else {
+            return None;
+          }
+        },
+        _ => return None,
+      }
+      if let Ok(value) = val_result {
+        if doc.set_value(key, value) {
+          return Some("Success".to_string());
+        }
+      }
+    }
+  }
   return None;
 }
 
 fn csv_to_vec<'a>(csv: &str) -> Result<Vec<String>, csv::Error> {
   let mut fields = vec![];
-  let mut rdr = Reader::from_string(csv).has_headers(false).escape(Some(b'\\'));
+  let mut rdr = Reader::from_string(csv).has_headers(false).escape(Some(b'\\')).quote(b'\0');
   while !rdr.done() {
     while let Some(result) = rdr.next_str().into_iter_result() {
       match result {
