@@ -1,11 +1,13 @@
 extern crate pirate;
 extern crate tomllib;
+extern crate csv;
 use std::fs::File;
 use std::env;
 use std::io::{Read, BufReader, Error};
 use pirate::{Matches, Match, Vars, matches, usage, vars};
 use tomllib::TOMLParser;
 use tomllib::types::{ParseResult, Children};
+use csv::Reader;
 
 macro_rules! usage(
   ($tval:expr) => (
@@ -244,7 +246,22 @@ fn has_children(key: &str, doc: &TOMLParser, true_val: &String, false_val: &Stri
 }
 
 fn set_value(keyvals: &str, doc: &TOMLParser) -> Option<String> {
-  unimplemented!();
+  println!("Called set_value with these keyvals: \"{:?}\"", csv_to_vec(keyvals));
+  return None;
+}
+
+fn csv_to_vec<'a>(csv: &str) -> Result<Vec<String>, csv::Error> {
+  let mut fields = vec![];
+  let mut rdr = Reader::from_string(csv).has_headers(false).escape(Some(b'\\'));
+  while !rdr.done() {
+    while let Some(result) = rdr.next_str().into_iter_result() {
+      match result {
+        Ok(field) => fields.push(field.to_string()),
+        Err(err)  => return Err(err),
+      }
+    }
+  }
+  Ok(fields)
 }
 
 fn print_doc(doc: &TOMLParser) {
