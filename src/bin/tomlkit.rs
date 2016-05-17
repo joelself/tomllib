@@ -5,7 +5,7 @@ use std::env;
 use std::io::{Read, BufReader, Error};
 use pirate::{Matches, Match, Vars, matches, usage, vars};
 use tomllib::TOMLParser;
-use tomllib::types::ParseResult;
+use tomllib::types::{ParseResult, Children};
 
 macro_rules! usage(
   ($tval:expr) => (
@@ -116,7 +116,8 @@ fn main() {
     } else {
       usage!(println!("Error: A required argument is missing for set-true."), &vars);
     }
-  } else if matches.has_match("set-false") {
+  }
+  if matches.has_match("set-false") {
     if let Some(f) = matches.get("set-false") {
       false_val = f;
     } else {
@@ -135,9 +136,7 @@ fn main() {
     }
   } else if matches.has_match("has-value") {
     if let Some(k) = matches.get("has-value") {
-      if let Some(val) = has_value(k, &parser, true_val, false_val) {
-        output = val;
-      }
+      output = has_value(k, &parser, true_val, false_val);
     } else {
       usage!(println!("Error: A required argument is missing for has-value."), &vars);
     }
@@ -151,9 +150,7 @@ fn main() {
     }
   } else if matches.has_match("has-children") {
     if let Some(k) = matches.get("has-children") {
-      if let Some(c) = has_children(k, &parser, true_val, false_val) {
-        output = c;
-      }
+      output = has_children(k, &parser, true_val, false_val);
     } else {
       usage!(println!("Error: A required argument is missing for has-children."), &vars);
     }
@@ -200,19 +197,53 @@ fn get_value(key: &str, doc: &TOMLParser) -> Option<String> {
   None
 }
 
-fn has_value(key: &str, doc: &TOMLParser, true_val: &String, false_val: &String) -> Option<String> {
-  unimplemented!();
+fn has_value(key: &str, doc: &TOMLParser, true_val: &String, false_val: &String) -> String {
+  if let Some(_) = doc.get_value(key) {
+    return true_val.clone();
+  }
+  return false_val.clone();
 }
 
 fn get_children(key: &str, doc: &TOMLParser) -> Option<String> {
-  unimplemented!();
+  if let Some(c) = doc.get_children(key) {
+    match c {
+      &Children::Keys(ref keys) => {
+        let mut retval = String::new();
+        retval.push('[');
+        if keys.borrow().len() > 0 {
+          for i in 0..keys.borrow().len() - 1 {
+            retval.push_str(&keys.borrow()[i]);
+            retval.push_str(", ");
+          }
+          retval.push_str(&keys.borrow()[keys.borrow().len() - 1]);
+        }
+        retval.push(']');
+        return Some(retval);
+      },
+      &Children::Count(ref size) => {
+        if size.get() == 0 {
+          return None;
+        }
+        return Some(format!("{}", size.get()))
+      },
+    }
+  }
+  None
 }
 
-fn has_children(key: &str, doc: &TOMLParser, true_val: &String, false_val: &String) -> Option<String> {
-  unimplemented!();
+fn has_children(key: &str, doc: &TOMLParser, true_val: &String, false_val: &String) -> String {
+  if let Some(c) = doc.get_children(key) {
+    if let &Children::Count(ref count) = c {
+      if count.get() == 0 {
+        return false_val.clone();
+      }
+    }
+    return true_val.clone();
+  }
+  return false_val.clone();
 }
 
-fn set_value(key: &str, doc: &TOMLParser) -> Option<String> {
+fn set_value(keyvals: &str, doc: &TOMLParser) -> Option<String> {
   unimplemented!();
 }
 
