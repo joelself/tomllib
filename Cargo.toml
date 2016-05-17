@@ -1,7 +1,7 @@
 [package]
 name = "tomllib"
 version = "0.1.1"
-authors = ["Joel Self <self@jself.com>"]
+authors = ["Joel Self <self@jself.io>"]
 description = "A format-preserving TOML file parser and manipulator"
 license = "MIT"
 repository = "https://github.com/joelself/tomllib"
