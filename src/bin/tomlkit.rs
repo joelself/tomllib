@@ -3,7 +3,8 @@ extern crate tomllib;
 extern crate csv;
 use std::fs::File;
 use std::env;
-use std::io::{Read, BufReader, Error};
+use std::io;
+use std::io::{Read, BufReader, Error, Write};
 use pirate::{Matches, Match, Vars, matches, usage, vars};
 use tomllib::TOMLParser;
 use tomllib::types::{ParseResult, Children, Value, TOMLError, TimeOffset, DateTime, Date, Time, TimeOffsetAmount,
@@ -21,11 +22,14 @@ macro_rules! usage(
     return;
   );
 );
-
+// Bugs: Automatic Options group with -h/--help
+//       Positional arguments look like flags/options in the description area
+//       Required argument overrides --help
+// Improvements: Remove bar when there's only a short or long name
+//               Add ability to specify a name instead of using long/short name or description
+//
 fn main() {
   let options = vec![
-    "Required arguments",
-    "f/file#The path to the TOML document to parse and manipulate.:",
     "#File-preserving commands",
     "g/get-value#Given a key or comma separated list of keys, retrieve the values for those keys. If multiple keys are \
       specified and any one of them fails to retrieve a value, the whole command will fail with an error message.:",
@@ -43,14 +47,19 @@ fn main() {
       specified value. For instance: \"foo.bar,hello,basic-string,baz.qux,82374,int\" will set the key \"foo.bar\" to \
       a basic string value of \"hello\" and the key \"baz.qux\" to an integer value of 82374. If multiple keys are \
       specified and any one of them fails to set a value, the whole command will fail with an error message.:",
-    "#Pre-command Options.",
+    "#Pre-command Options",
     "h/help#Show this screen.",
     "/set-true#For commands that print \"true\" or \"false\", this will change what value is printed for \"true\", \
       i.e. --set-true=1 will cause tomlkit to print \"1\" for \"true\" instead of \"true\".:",
     "/set-false#For commands that print \"true\" or \"false\", this will change what value is printed for \"false\", \
       i.e. --set-false=0 will cause tomlkit to print \"0\" for \"false\" instead of \"false\".:",
-    "#Post-command Options.",
+    "p/separator#Set the string that will separate multiple results. The default is \" ,\".:",
+    "q/quiet#For commands that modify rather than return a result, turn off printing \"Success\" for each successful \
+    modification.",
+    "#Post-command Options",
     "/print-doc#Print out the resultant TOML document after all requested changes have been made.",
+    "#Required arguments",
+    ":/FILE#The path to the TOML document to parse and manipulate.",
   ];
 
   let mut vars: Vars = match vars("tomlkit", &options) {
@@ -71,12 +80,14 @@ fn main() {
   }
   let mut true_val = &"true".to_string();
   let mut false_val = &"false".to_string();
+  let mut separator = &", ".to_string();
+  let mut quiet = false;
   let mut output = String::new();
 
   // The file we're operating on
   let mut file = String::new();
-  if matches.has_match("file") {
-    if let Some(f) = matches.get("file") {
+  if matches.has_match("FILE") {
+    if let Some(f) = matches.get("FILE") {
       match get_file(f, &mut file) {
         Err(err) => {
           println!("Error: Unable to read file: \"{}\". Reason: {}", f, err);
@@ -88,7 +99,7 @@ fn main() {
       usage!(println!("Error: A required argument is missing for f/file."), &vars);
     }
   } else {
-    println!("Error: -f/--file is a required argument.");
+    println!("Error: FILE is a required argument.");
     return;
   }
 
@@ -111,7 +122,6 @@ fn main() {
     _ => (), // If verbose output Full or FullError
   }
 
-
   // Pre-command options
   if matches.has_match("set-true") {
     if let Some(t) = matches.get("set-true") {
@@ -127,41 +137,46 @@ fn main() {
       usage!(println!("Error: A required argument is missing for set-false."), &vars);
     }
   }
+  if matches.has_match("separator") {
+    if let Some(s) = matches.get("separator") {
+      separator = s;
+    } else {
+      usage!(println!("Error: A required argument is missing for separator."), &vars);
+    }
+  }
 
+  let result: Result<String, String>;
   // Commands only one command allowed per invocation for this version
   if matches.has_match("get-value") {
     if let Some(k) = matches.get("get-value") {
-      if let Some(val) = get_value(k, &parser) {
-        output = val;
-      }
+      result = get_value(k, separator, &parser);
     } else {
       usage!(println!("Error: A required argument is missing for g/get-value."), &vars);
     }
   } else if matches.has_match("has-value") {
     if let Some(k) = matches.get("has-value") {
-      output = has_value(k, &parser, true_val, false_val);
+      result = has_value(k, separator, &parser, true_val, false_val);
     } else {
       usage!(println!("Error: A required argument is missing for has-value."), &vars);
     }
   } else if matches.has_match("get-children") {
     if let Some(k) = matches.get("get-children") {
-      if let Some(c) = get_children(k, &parser) {
-        output = c;
-      }
+      result = get_children(k, separator, &parser);
     } else {
       usage!(println!("Error: A required argument is missing for c/get-children."), &vars);
     }
   } else if matches.has_match("has-children") {
     if let Some(k) = matches.get("has-children") {
-      output = has_children(k, &parser, true_val, false_val);
+      result = has_children(k, separator, &parser, true_val, false_val);
     } else {
       usage!(println!("Error: A required argument is missing for has-children."), &vars);
     }
   } else if matches.has_match("set-value") {
     if let Some(kv) = matches.get("set-value") {
-      if let Some(out) = set_value(kv, &mut parser) {
-        output = out;
+      if  matches.has_match("quiet") {
+        quiet = true;
       }
+      result = set_value(kv, separator, quiet, &mut parser);
     } else {
       usage!(println!("Error: A required argument is missing for s/set-value."), &vars);
     }
@@ -171,7 +186,17 @@ fn main() {
   }
 
   // ************** Print output here! *******************
-  println!("{}", output);
+  match result  {
+    Ok(val) => {
+      if !quiet {
+        println!("{}", val);
+      }
+    },
+    Err(err) => {
+      println!("{}", err);
+      std::process::exit(-1);
+    }
+  }
 
   // Post-command options
   if matches.has_match("print-doc") {
@@ -193,69 +218,129 @@ fn get_file(file_path: &String, out_file: &mut String) -> Result<usize, Error> {
   }
 }
 
-fn get_value(key: &str, doc: &TOMLParser) -> Option<String> {
-  if let Some(value) = doc.get_value(key) {
-    return Some(format!("{}", value));
-  }
-  None
-}
-
-fn has_value(key: &str, doc: &TOMLParser, true_val: &String, false_val: &String) -> String {
-  if let Some(_) = doc.get_value(key) {
-    return true_val.clone();
-  }
-  return false_val.clone();
-}
-
-fn get_children(key: &str, doc: &TOMLParser) -> Option<String> {
-  if let Some(c) = doc.get_children(key) {
-    match c {
-      &Children::Keys(ref keys) => {
-        let mut retval = String::new();
-        retval.push('[');
-        if keys.borrow().len() > 0 {
-          for i in 0..keys.borrow().len() - 1 {
-            retval.push_str(&keys.borrow()[i]);
-            retval.push_str(", ");
-          }
-          retval.push_str(&keys.borrow()[keys.borrow().len() - 1]);
-        }
-        retval.push(']');
-        return Some(retval);
-      },
-      &Children::Count(ref size) => {
-        if size.get() == 0 {
-          return None;
-        }
-        return Some(format!("{}", size.get()))
-      },
+fn get_value(csv: &str, sep: &String, doc: &TOMLParser) -> Result<String, String> {
+  let key_results = csv_to_vec(csv);
+  if let Ok(keys) = key_results {
+    if keys.len() == 0 {
+      return Err(format!("Error: No keys specified: \"{}\".", csv));
     }
-  }
-  None
-}
-
-fn has_children(key: &str, doc: &TOMLParser, true_val: &String, false_val: &String) -> String {
-  if let Some(c) = doc.get_children(key) {
-    if let &Children::Count(ref count) = c {
-      if count.get() == 0 {
-        return false_val.clone();
+    let mut result = String::new();
+    for i in 0..keys.len() {
+      let key: &str = &keys[i];
+      if let Some(value) = doc.get_value(key) {
+        result.push_str(&format!("{}", value));
+        if i < keys.len() - 1 {
+          result.push_str(sep);
+        }
+      } else {
+        return Err(format!("Error: Key \"{}\" not found.", key));
       }
     }
-    return true_val.clone();
+    return Ok(result);
   }
-  return false_val.clone();
+  Err(format!("Error: Could not parse keys: \"{:?}\".", csv))
 }
 
-fn set_value<'a>(kvs: &str, doc: &mut TOMLParser) -> Option<String> {
+fn has_value(csv: &str, sep: &String, doc: &TOMLParser, true_val: &String, false_val: &String) -> Result<String, String> {
+  let key_results = csv_to_vec(csv);
+  if let Ok(keys) = key_results {
+    if keys.len() == 0 {
+      return Err(format!("Error: No keys specified: \"{}\".", csv));
+    }
+    let mut result = String::new();
+    for i in 0..keys.len() {
+      let key: &str = &keys[i];
+      if let Some(_) = doc.get_value(key) {
+        result.push_str(true_val);
+      } else {
+        result.push_str(false_val);
+      }
+      if i < keys.len() - 1 {
+        result.push_str(sep);
+      }
+    }
+    return Ok(result);
+  }
+  Err(format!("Error: Could not parse keys: \"{}\".", csv))
+}
+
+fn get_children(csv: &str, sep: &String, doc: &TOMLParser) -> Result<String, String> {
+  let key_results = csv_to_vec(csv);
+  if let Ok(keys) = key_results {
+    if keys.len() == 0 {
+      return Err(format!("Error: No keys specified: \"{}\".", csv));
+    }
+    let mut result = String::new();
+    for i in 0..keys.len() {
+      let key: &str = &keys[i];
+      if let Some(c) = doc.get_children(key) {
+        match c {
+          &Children::Keys(ref ckeys) => {
+            let mut val = String::new();
+            val.push('[');
+            if ckeys.borrow().len() > 0 {
+              for i in 0..ckeys.borrow().len() - 1 {
+                val.push_str(&ckeys.borrow()[i]);
+                val.push_str(", ");
+              }
+              val.push_str(&ckeys.borrow()[ckeys.borrow().len() - 1]);
+            }
+            val.push(']');
+            result.push_str(&val);
+          },
+          &Children::Count(ref size) => {
+            if size.get() == 0 {
+              return return Err(format!("Error: Key \"{}\" has no children.", key));
+            }
+            result.push_str(&format!("{}", size.get()))
+          },
+        }
+        if i < keys.len() - 1 {
+          result.push_str(", ");
+        }
+      } else {
+        return Err(format!("Error: Key \"{}\" not found.", key));
+      }
+    }
+    return Ok(result);
+  }
+  Err(format!("Error: Could not parse keys: \"{}\".", csv))
+}
+
+fn has_children(csv: &str, sep: &String, doc: &TOMLParser, true_val: &String, false_val: &String) -> Result<String, String> {
+  let key_results = csv_to_vec(csv);
+  if let Ok(keys) = key_results {
+    if keys.len() == 0 {
+      return Err(format!("Error: No keys specified: \"{}\".", csv));
+    }
+    let mut result = String::new();
+    for i in 0..keys.len() {
+      let key: &str = &keys[i];
+      if let Some(_) = doc.get_children(key) {
+        result.push_str(true_val);
+      } else {
+        result.push_str(false_val);
+      }
+      if i < keys.len() - 1 {
+        result.push_str(sep);
+      }
+    }
+    return Ok(result);
+  }
+  Err(format!("Error: Could not parse keys: \"{}\".", csv))
+}
+
+fn set_value<'a>(kvs: &str, sep: &String, quiet: bool, doc: &mut TOMLParser) -> Result<String, String> {
   let keyval_results = csv_to_vec(kvs);
   if let Ok(keyvals) = keyval_results {
     if keyvals.len() % 3 != 0 || keyvals.len() == 0 {
-      return None;
+      return Err(format!("Error: No keys or wrong number of keys specified (must be a multiple of 3): \"{}\".", kvs));
     }
+    let mut result = String::new();
     for i in 0..keyvals.len() / 3 {
-      let key: &str = &keyvals[i];
-      let val: &str = &keyvals[i+1];
-      let typ: &str = &keyvals[i+2];
+      let key: &str = &keyvals[i*3];
+      let val: &str = &keyvals[i*3+1];
+      let typ: &str = &keyvals[i*3+2];
       let val_result: Result<Value, TOMLError>;
       match typ {
         "basic-string" | "bs" => val_result = Value::basic_string(val),
@@ -323,19 +408,31 @@ fn set_value<'a>(kvs: &str, doc: &mut TOMLParser) -> Option<String> {
             }
             val_result = Ok(Value::DateTime(new_dt));
           } else {
-            return None;
+            return Err(format!("Error: Unable to parse value: \"{}\" as type: \"{}\" for key: \"{}\"", val, typ, key));
           }
         },
-        _ => return None,
+        _ => return Err(format!("Error: Type \"{}\" not recognized for key: \"{}\"", typ, key)),
       }
       if let Ok(value) = val_result {
         if doc.set_value(key, value) {
-          return Some("Success".to_string());
+          if !quiet {
+            result.push_str("Success");
+          }
+        } else {
+          return Err(format!("Error: Could not set value of key: \"{}\" to value: \"{}\", with type \"{}\"", key, val, typ));
+        }
+      } else {
+        return Err(format!("Error: Unable to parse value: \"{}\" as type: \"{}\" for key: \"{}\"", val, typ, key));
+      }
+      if !quiet {
+        if i * 3  < keyvals.len() - 3 {
+          result.push_str(sep);
         }
       }
     }
+    return Ok(result);
   }
-  return None;
+  Err(format!("Error: Could not parse keys: \"{}\".", kvs))
 }
 
 fn csv_to_vec<'a>(csv: &str) -> Result<Vec<String>, csv::Error> {
