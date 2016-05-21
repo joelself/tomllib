@@ -128,6 +128,20 @@ impl<'a> Parser<'a> {
           debug!("Check if key \"{}\" has a value.", full_key);
           let hash_value_opt = map_borrow.get(&full_key);
           if let Some(hash_value) = hash_value_opt {
+            if let Some(ref value) = hash_value.value {
+              match *value.borrow() {
+                TOMLValue::Table => {
+                  if let Children::Keys(_) = hash_value.subkeys {
+                    debug!("Array Key \"{}\" conflicts with table key.", full_key);
+                    valid = false;
+                  }
+                },
+                _ => {
+                  debug!("/== Key \"{}\" has a value.", full_key);
+                  valid = false;
+                },
+              }
+            }
             if let Some(_) = hash_value.value {
               debug!("Key \"{}\" has a value.", full_key);
               valid = false;
@@ -165,9 +179,11 @@ impl<'a> Parser<'a> {
             }
             full_key.push_str(&keys[j]);
             valid = valid && !Parser::key_has_value(&full_key, map);
+            if j == keys.len() - 2 {
+              parent_key = full_key.clone();
+            }
             full_key.push('.');
           }
-          parent_key = full_key.clone();
           full_key.push_str(&keys[keys.len() - 1]);
           valid = valid && !Parser::key_has_value(&full_key, map);
         }
@@ -182,9 +198,42 @@ impl<'a> Parser<'a> {
     debug!("Check if key \"{}\" has a value.", key);
     let hash_value_opt = map_borrow.get(key);
     if let Some(hash_value) = hash_value_opt {
-      if let Some(_) = hash_value.value {
-        debug!("/== Key \"{}\" has a value.", key);
-        return true;
+      if let Some(ref value) = hash_value.value {
+        match *value.borrow() {
+          TOMLValue::Table => return false,
+          _ => {
+            debug!("/== Key \"{}\" has a value.", key);
+            return true;
+          },
+        }
+      }
+    }
+    return false;
+  }
+
+  pub fn key_has_children_with_values(key: &str, map: &RefCell<&mut HashMap<String, HashValue<'a>>>) -> bool {
+    if key == "$Root$" {
+      return false;
+    }
+    let map_borrow = map.borrow();
+    debug!("Check if key \"{}\" has any children.", key);
+    let hash_value_opt = map_borrow.get(key);
+    if let Some(hash_value) = hash_value_opt {
+      match hash_value.subkeys {
+        Children::Count(ref c) => {
+          if c.get() > 0 {
+            panic!("Standard table cannot have indexed sub-keys. Key: {}, sub-key count: {}", key, c.get());
+          }
+        },
+        Children::Keys(ref children) => {
+          for i in 0..children.borrow().len() {
+            let child_key = format!("{}.{}", key, children.borrow()[i]);
+            if Parser::key_has_value(&child_key, map) {
+              debug!("/== Key \"{}\" has sub-key {} with a value.", key, child_key);
+              return true;
+            }
+          }
+        },
       }
     }
     return false;

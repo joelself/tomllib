@@ -1,10 +1,11 @@
 extern crate pirate;
 extern crate tomllib;
 extern crate csv;
+extern crate env_logger;
 use std::fs::File;
 use std::env;
 use std::io;
-use std::io::{Read, BufReader, Error, Write};
+use std::io::{Read, Error, Write};
 use pirate::{Matches, Match, Vars, matches, usage, vars};
 use tomllib::TOMLParser;
 use tomllib::types::{ParseResult, Children, Value, TOMLError, TimeOffset, DateTime, Date, Time, TimeOffsetAmount,
@@ -19,7 +20,7 @@ macro_rules! usage(
   ($submac:ident!( $($args:tt)* ), $tval:expr) => (
     $submac!($($args)*);
     usage($tval);
-    return;
+    std::process::exit(-1);
   );
 );
 // Bugs: Automatic Options group with -h/--help
@@ -59,8 +60,12 @@ fn main() {
     "#Post-command Options",
     "/print-doc#Print out the resultant TOML document after all requested changes have been made.",
     "#Required arguments",
-    ":/FILE#The path to the TOML document to parse and manipulate.",
+    "i/input-file#The path to the TOML document to parse and manipulate. If this isn't used then tomlkit will expect \
+    the names of input files to come through stdin.:",
+    "o/output-file#The path to write the finished TOML document to. If not specified any changes will be \
+    written back to the INPUT_FILE.:",
   ];
+  let _ = env_logger::init();
 
   let mut vars: Vars = match vars("tomlkit", &options) {
     Ok(v) => v,
@@ -78,46 +83,71 @@ fn main() {
   if matches.has_match("help") {
     usage!(&vars);
   }
+
+  // The file we're operating on
+  if matches.has_match("input-file") {
+    if let Some(f) = matches.get("input-file") {
+      process_document(f, &matches, &vars);
+    } else {
+      usage!(println!("Error: A required argument is missing for input-file."), &vars);
+    }
+  } else {
+    // No input-file specified so read files from stdin
+    let mut input = String::new();
+    loop {
+      match io::stdin().read_line(&mut input) {
+        Ok(n) => {
+          if n == 0 {
+            break;
+          }
+          process_document(&input.trim().to_string(), &matches, &vars);
+          input.clear();
+        },
+        Err(err) => {
+          println!("Unable to read input file names from stdin: {}", err);
+          std::process::exit(-1);
+        },
+      }
+    }
+  }
+}
+
+fn process_document(file_path: &String, matches: &Matches, vars: &Vars) {
   let mut true_val = &"true".to_string();
   let mut false_val = &"false".to_string();
   let mut separator = &", ".to_string();
   let mut quiet = false;
-  let mut output = String::new();
-
-  // The file we're operating on
   let mut file = String::new();
-  if matches.has_match("FILE") {
-    if let Some(f) = matches.get("FILE") {
-      match get_file(f, &mut file) {
-        Err(err) => {
-          println!("Error: Unable to read file: \"{}\". Reason: {}", f, err);
-          return;
-        },
-        _ => ()
-      }
-    } else {
-      usage!(println!("Error: A required argument is missing for f/file."), &vars);
-    }
-  } else {
-    println!("Error: FILE is a required argument.");
-    return;
-  }
 
+  match get_file(file_path, &mut file)  {
+    Ok(()) => (),
+    Err(err) => {
+      println!("Error \"{}\": Unable to open file: {}", file_path, err);
+      std::process::exit(-1);
+    }
+  }
   // Parse the document
-  let mut parser: TOMLParser = TOMLParser::new();
+  let parser: TOMLParser = TOMLParser::new();
   let (mut parser, result) = parser.parse(&file);
   match result {
     ParseResult::Partial(_,_,_) => {
-      println!("Error: Document only partially parsed. Please correct any errors before trying again.");
-      return;
+      println!("Error \"{}\": Document only partially parsed. Please correct any errors before trying again.",
+        file_path);
+      std::process::exit(-1);
     },
     ParseResult::PartialError(_,_,_,_) => {
-      println!("Error: Document only partially parsed with errors. Please correct any errors before trying again.");
-      return;
+      println!("Error \"{}\": Document only partially parsed with errors. Please correct any errors before trying \
+        again.", file_path);
+      std::process::exit(-1);
     },
     ParseResult::Failure(_,_) => {
-      println!("Error: Completely failed to parse document. Please correct any error before trying again.");
-      return;
+      println!("Error \"{}\": Completely failed to parse document. Please correct any error before trying again.",
+        file_path);
+      std::process::exit(-1);
+    },
+    ParseResult::FullError(errors) => {
+      println!("Error \"{}\": Parsed entire document, but with errors: {:?}.", file_path, errors);
+      std::process::exit(-1);
     },
     _ => (), // If verbose output Full or FullError
   }
@@ -127,102 +157,149 @@ fn main() {
     if let Some(t) = matches.get("set-true") {
       true_val = t;
     } else {
-      usage!(println!("Error: A required argument is missing for set-true."), &vars);
+      usage!(println!("Error \"{}\": A required argument is missing for set-true.", file_path), &vars);
     }
   }
   if matches.has_match("set-false") {
     if let Some(f) = matches.get("set-false") {
       false_val = f;
     } else {
-      usage!(println!("Error: A required argument is missing for set-false."), &vars);
+      usage!(println!("Error \"{}\": A required argument is missing for set-false.", file_path), &vars);
     }
   }
   if matches.has_match("separator") {
     if let Some(s) = matches.get("separator") {
       separator = s;
     } else {
-      usage!(println!("Error: A required argument is missing for separator."), &vars);
+      usage!(println!("Error \"{}\": A required argument is missing for separator.", file_path), &vars);
     }
   }
 
-  let result: Result<String, String>;
+  let mut command: bool = false;
+  let mut result: Vec<Result<String, String>> = vec![Ok("".to_string())];
+  let mut out_file = file_path;
   // Commands only one command allowed per invocation for this version
   if matches.has_match("get-value") {
+    command = true;
     if let Some(k) = matches.get("get-value") {
-      result = get_value(k, separator, &parser);
+      result.push(get_value(k, separator, &parser));
     } else {
-      usage!(println!("Error: A required argument is missing for g/get-value."), &vars);
+      usage!(println!("Error \"{}\": A required argument is missing for g/get-value.", file_path), &vars);
     }
-  } else if matches.has_match("has-value") {
-    if let Some(k) = matches.get("has-value") {
-      result = has_value(k, separator, &parser, true_val, false_val);
-    } else {
-      usage!(println!("Error: A required argument is missing for has-value."), &vars);
-    }
-  } else if matches.has_match("get-children") {
-    if let Some(k) = matches.get("get-children") {
-      result = get_children(k, separator, &parser);
-    } else {
-      usage!(println!("Error: A required argument is missing for c/get-children."), &vars);
-    }
-  } else if matches.has_match("has-children") {
-    if let Some(k) = matches.get("has-children") {
-      result = has_children(k, separator, &parser, true_val, false_val);
-    } else {
-      usage!(println!("Error: A required argument is missing for has-children."), &vars);
-    }
-  } else if matches.has_match("set-value") {
-    if let Some(kv) = matches.get("set-value") {
-      if  matches.has_match("quiet") {
-        quiet = true;
+  }
+  if let Ok(_) = result[result.len() - 1] {
+    if matches.has_match("has-value") {
+      command = true;
+      if let Some(k) = matches.get("has-value") {
+        result.push(has_value(k, separator, &parser, true_val, false_val));
+      } else {
+        usage!(println!("Error \"{}\": A required argument is missing for has-value.", file_path), &vars);
       }
-      result = set_value(kv, separator, quiet, &mut parser);
-    } else {
-      usage!(println!("Error: A required argument is missing for s/set-value."), &vars);
     }
-  } else {
+  }
+  if let Ok(_) = result[result.len() - 1] {
+    if matches.has_match("get-children") {
+      command = true;
+      if let Some(k) = matches.get("get-children") {
+        result.push(get_children(k, separator, &parser));
+      } else {
+        usage!(println!("Error \"{}\": A required argument is missing for c/get-children.", file_path), &vars);
+      }
+    }
+  }
+  if let Ok(_) = result[result.len() - 1] {
+    if matches.has_match("has-children") {
+      command = true;
+      if let Some(k) = matches.get("has-children") {
+        result.push(has_children(k, separator, &parser, true_val, false_val));
+      } else {
+        usage!(println!("Error \"{}\": A required argument is missing for has-children.", file_path), &vars);
+      }
+    }
+  }
+  if let Ok(_) = result[result.len() - 1] {
+    if matches.has_match("set-value") {
+      command = true;
+      if let Some(kv) = matches.get("set-value") {
+        if  matches.has_match("quiet") {
+          quiet = true;
+        }
+        result.push(set_value(kv, separator, quiet, &mut parser));
+        if matches.has_match("output-file") {
+          match matches.get("output-file") {
+            Some(out) => out_file = out,
+            None => {
+              usage!(println!("Error \"{}\": A required argument is missing for output-file.", file_path), &vars);
+            },
+          }
+        }
+        if let Ok(_) = result[result.len() - 1] {
+          // Write back out to the file
+          match write_to_file(out_file, &parser) {
+            Ok(()) => (),
+            Err(err) => {
+              println!("Error \"{}\": Unable to write to file: \"{}\". Reason: {}", file_path, out_file, err);
+              std::process::exit(-1);
+            },
+          }
+        }
+      } else {
+        usage!(println!("Error \"{}\": A required argument is missing for s/set-value.", file_path), &vars);
+      }
+    }
+  }
+  if !command {
     // No command specified print usage
-    usage!(&vars);
+    usage!(println!("Error \"{}\": No command was specified.", file_path), &vars);
   }
 
   // ************** Print output here! *******************
-  match result  {
-    Ok(val) => {
-      if !quiet {
-        println!("{}", val);
+  let _ = result.remove(0);
+  for i in 0..result.len() {
+    match &result[i]  {
+      &Ok(ref val) => {
+        if !quiet {
+          print!("{}", val);
+        }
+      },
+      &Err(ref err) => {
+        print!("Error \"{}\": {}", file_path, err);
       }
-    },
-    Err(err) => {
-      println!("{}", err);
-      std::process::exit(-1);
+    }
+    if i < result.len() - 1 {
+      print!("{}", separator);
+    }
+    if i == result.len() - 1 {
+      println!("");
     }
   }
 
   // Post-command options
   if matches.has_match("print-doc") {
-    println!("\n>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>DOCUMENT<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n");
+    println!("\n||  ||  ||  ||  ||  ||  ||  ||  ||  DOCUMENT  ||  ||  ||  ||  ||  ||  ||  ||  ||");
+    println!("\\/  \\/  \\/  \\/  \\/  \\/  \\/  \\/  \\/            \\/  \\/  \\/  \\/  \\/  \\/  \\/  \\/  \\/\n");
     print_doc(&parser);
   }
 }
 
-fn get_file(file_path: &String, out_file: &mut String) -> Result<usize, Error> {
-  match File::open(file_path) {
-    Ok(file) => {
-      let mut contents = BufReader::new(&file);
-      match contents.read_to_string(out_file) {
-        Ok(bytes) => return Ok(bytes),
-        Err(err) => return Err(err),
-      }
-    },
-    Err(err) => return Err(err),
-  }
+fn write_to_file(file_path: &String, doc: &TOMLParser) -> Result<(), Error> {
+  let mut f = try!(File::create(file_path));
+  try!(f.write_all(format!("{}",doc).as_bytes()));
+  try!(f.sync_all());
+  Ok(())
+}
+
+fn get_file(file_path: &String, out_file: &mut String) -> Result<(), Error> {
+  let mut f = try!(File::open(file_path));
+  try!(f.read_to_string(out_file));
+  Ok(())
 }
 
 fn get_value(csv: &str, sep: &String, doc: &TOMLParser) -> Result<String, String> {
   let key_results = csv_to_vec(csv);
   if let Ok(keys) = key_results {
     if keys.len() == 0 {
-      return Err(format!("Error: No keys specified: \"{}\".", csv));
+      return Err(format!("No keys specified: \"{}\".", csv));
     }
     let mut result = String::new();
     for i in 0..keys.len() {
@@ -233,19 +310,20 @@ fn get_value(csv: &str, sep: &String, doc: &TOMLParser) -> Result<String, String
           result.push_str(sep);
         }
       } else {
-        return Err(format!("Error: Key \"{}\" not found.", key));
+        return Err(format!("Key \"{}\" not found.", key));
       }
     }
     return Ok(result);
   }
-  Err(format!("Error: Could not parse keys: \"{:?}\".", csv))
+  Err(format!("Could not parse keys: \"{:?}\".", csv))
 }
 
-fn has_value(csv: &str, sep: &String, doc: &TOMLParser, true_val: &String, false_val: &String) -> Result<String, String> {
+fn has_value(csv: &str, sep: &String, doc: &TOMLParser, true_val: &String, false_val: &String)
+  -> Result<String, String> {
   let key_results = csv_to_vec(csv);
   if let Ok(keys) = key_results {
     if keys.len() == 0 {
-      return Err(format!("Error: No keys specified: \"{}\".", csv));
+      return Err(format!("No keys specified: \"{}\".", csv));
     }
     let mut result = String::new();
     for i in 0..keys.len() {
@@ -261,14 +339,14 @@ fn has_value(csv: &str, sep: &String, doc: &TOMLParser, true_val: &String, false
     }
     return Ok(result);
   }
-  Err(format!("Error: Could not parse keys: \"{}\".", csv))
+  Err(format!("Could not parse keys: \"{}\".", csv))
 }
 
 fn get_children(csv: &str, sep: &String, doc: &TOMLParser) -> Result<String, String> {
   let key_results = csv_to_vec(csv);
   if let Ok(keys) = key_results {
     if keys.len() == 0 {
-      return Err(format!("Error: No keys specified: \"{}\".", csv));
+      return Err(format!("No keys specified: \"{}\".", csv));
     }
     let mut result = String::new();
     for i in 0..keys.len() {
@@ -290,28 +368,29 @@ fn get_children(csv: &str, sep: &String, doc: &TOMLParser) -> Result<String, Str
           },
           &Children::Count(ref size) => {
             if size.get() == 0 {
-              return return Err(format!("Error: Key \"{}\" has no children.", key));
+              return return Err(format!("Key \"{}\" has no children.", key));
             }
             result.push_str(&format!("{}", size.get()))
           },
         }
         if i < keys.len() - 1 {
-          result.push_str(", ");
+          result.push_str(sep);
         }
       } else {
-        return Err(format!("Error: Key \"{}\" not found.", key));
+        return Err(format!("Key \"{}\" not found.", key));
       }
     }
     return Ok(result);
   }
-  Err(format!("Error: Could not parse keys: \"{}\".", csv))
+  Err(format!("Could not parse keys: \"{}\".", csv))
 }
 
-fn has_children(csv: &str, sep: &String, doc: &TOMLParser, true_val: &String, false_val: &String) -> Result<String, String> {
+fn has_children(csv: &str, sep: &String, doc: &TOMLParser, true_val: &String, false_val: &String)
+  -> Result<String, String> {
   let key_results = csv_to_vec(csv);
   if let Ok(keys) = key_results {
     if keys.len() == 0 {
-      return Err(format!("Error: No keys specified: \"{}\".", csv));
+      return Err(format!("No keys specified: \"{}\".", csv));
     }
     let mut result = String::new();
     for i in 0..keys.len() {
@@ -327,14 +406,14 @@ fn has_children(csv: &str, sep: &String, doc: &TOMLParser, true_val: &String, fa
     }
     return Ok(result);
   }
-  Err(format!("Error: Could not parse keys: \"{}\".", csv))
+  Err(format!("Could not parse keys: \"{}\".", csv))
 }
 
 fn set_value<'a>(kvs: &str, sep: &String, quiet: bool, doc: &mut TOMLParser) -> Result<String, String> {
   let keyval_results = csv_to_vec(kvs);
   if let Ok(keyvals) = keyval_results {
     if keyvals.len() % 3 != 0 || keyvals.len() == 0 {
-      return Err(format!("Error: No keys or wrong number of keys specified (must be a multiple of 3): \"{}\".", kvs));
+      return Err(format!("No keys or wrong number of keys specified (must be a multiple of 3): \"{}\".", kvs));
     }
     let mut result = String::new();
     for i in 0..keyvals.len() / 3 {
@@ -354,8 +433,8 @@ fn set_value<'a>(kvs: &str, sep: &String, quiet: bool, doc: &mut TOMLParser) -> 
           let str_val: &str = &val;
           let tmp_result = Value::datetime_parse(str_val);
           let mut new_dt: DateTime = DateTime{date: Date{year: "".into(), month: "".into(), day: "".into()}, time: None};
-          let (mut year, mut month, mut day, mut hour, mut minute, mut second, mut fraction) = ("".into(), "".into(),
-            "".into(), "".into(), "".into(), "".into(), "".into());
+          let (year, month, day);
+          let (mut hour, mut minute, mut second, mut fraction) = ("".into(), "".into(), "".into(), "".into());
           let (mut off_hour, mut off_minute, mut pos_neg) = ("".into(), "".into(), PosNeg::Pos);
           let (mut has_time, mut has_fraction, mut has_offset) = (false, false, false);
           if let Ok(dtval) = tmp_result {
@@ -408,10 +487,10 @@ fn set_value<'a>(kvs: &str, sep: &String, quiet: bool, doc: &mut TOMLParser) -> 
             }
             val_result = Ok(Value::DateTime(new_dt));
           } else {
-            return Err(format!("Error: Unable to parse value: \"{}\" as type: \"{}\" for key: \"{}\"", val, typ, key));
+            return Err(format!("Unable to parse value: \"{}\" as type: \"{}\" for key: \"{}\"", val, typ, key));
           }
         },
-        _ => return Err(format!("Error: Type \"{}\" not recognized for key: \"{}\"", typ, key)),
+        _ => return Err(format!("Type \"{}\" not recognized for key: \"{}\"", typ, key)),
       }
       if let Ok(value) = val_result {
         if doc.set_value(key, value) {
@@ -419,10 +498,10 @@ fn set_value<'a>(kvs: &str, sep: &String, quiet: bool, doc: &mut TOMLParser) -> 
             result.push_str("Success");
           }
         } else {
-          return Err(format!("Error: Could not set value of key: \"{}\" to value: \"{}\", with type \"{}\"", key, val, typ));
+          return Err(format!("Could not set value of key: \"{}\" to value: \"{}\", with type \"{}\"", key, val, typ));
         }
       } else {
-        return Err(format!("Error: Unable to parse value: \"{}\" as type: \"{}\" for key: \"{}\"", val, typ, key));
+        return Err(format!("Unable to parse value: \"{}\" as type: \"{}\" for key: \"{}\"", val, typ, key));
       }
       if !quiet {
         if i * 3  < keyvals.len() - 3 {
@@ -432,7 +511,7 @@ fn set_value<'a>(kvs: &str, sep: &String, quiet: bool, doc: &mut TOMLParser) -> 
     }
     return Ok(result);
   }
-  Err(format!("Error: Could not parse keys: \"{}\".", kvs))
+  Err(format!("Could not parse keys: \"{}\".", kvs))
 }
 
 fn csv_to_vec<'a>(csv: &str) -> Result<Vec<String>, csv::Error> {

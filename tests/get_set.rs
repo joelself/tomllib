@@ -452,3 +452,36 @@ KEYONE = "VALUEONE"
     assert!(false, "The first error should have been an invalid datetime error, but it wasn't.");
   }
 }
+
+#[test]
+fn test_nested_empty_table() {
+  let _ = env_logger::init();
+
+  let parser = TOMLParser::new();
+  let (_, result) = parser.parse(r#"[foo]
+
+[foo.bar]
+key = 1234
+"#);
+  match result {
+    ParseResult::Full => (),
+    _ => assert!(false, "There shouldn't be a problem with a nested table if the parent table has no key-value pairs.")
+  }
+}
+
+#[test]
+fn test_nested_table_with_keys() {
+  let _ = env_logger::init();
+
+  let parser = TOMLParser::new();
+  let (_, result) = parser.parse(r#"[foo]
+error = true
+
+[foo.bar]
+key = 1234
+"#);
+  match result {
+    ParseResult::Full => assert!(false, "There should be an error with a nested table if the parent table has defined key-value pairs."),
+    _ => (),
+  }
+}
