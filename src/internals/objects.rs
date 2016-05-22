@@ -272,7 +272,7 @@ impl<'a> Parser<'a> {
           parent_key = tuple.2;
           self.last_array_tables.borrow_mut().pop();
           self.last_array_tables_index.borrow_mut().pop();
-          if !tuple.0 {
+          if !tuple.0 || Parser::key_has_children_with_values(&parent_key, &map) {
             error = true;
           } else {
             debug!("Standard Table Key: {}", table_key);

@@ -1,6 +1,6 @@
 [package]
 name = "tomllib"
-version = "0.1.1"
+version = "0.1.2"
 authors = ["Joel Self <self@jself.io>"]
 description = "A format-preserving TOML file parser and manipulator"
 license = "MIT"
@@ -24,6 +24,10 @@ version = "^0.1.48"
 version = "^0.3.5"
 [dependencies.env_logger]
 version = "^0.3.2"
+[dependencies.pirate]
+version = "1.0.0"
+[dependencies.csv]
+version = "0.14.4"
 
 [[bin]]
 name = "tomlkit"
