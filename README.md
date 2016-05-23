@@ -1,23 +1,29 @@
 ![tomllib logo](https://dislocal.com/wp-content/uploads/2016/01/tomllib_logo1.svg)          ![tomlkit logo](https://dislocal.com/wp-content/uploads/2016/01/tomlkit_logo1.svg)
-## `tomlkit` is coming! Here's a taste of what you can do with version 0.1.0:
+## The first bug-fix release of `tomllib` (0.1.2) is out! Get it on [crates.io](https://crates.io/crates/tomllib)!
+## `tomlkit` is coming! Here's a taste of what you can do with version 0.1.2:
 Get the package name, version, whether it has a license and all dependencies of Cargo.toml files:
 ```bash
-find . -name 'Cargo.toml' | ./toml_parser/target/debug/tomlkit -g package.name,package.version --has-value package.license -c dependencies
-"methodtest", "0.1.0", false, [nom]
-"mtailtest", "0.1.0", false, [mtaillib]
-"multitail", "0.1.0", false, [term, notify, getopts]
-"mtaillib", "0.1.0", false, [notify, libc]
-"nomplusplus", "0.1.0", true, [radix_trie, regex, lazy_static]
-"rproxy", "0.1.0", false, [radix_trie]
-"radix_trie", "0.0.8", true, [nibble_vec]
-"rustfmt", "0.2.1", true, [toml, rustc-serialize, unicode-segmentation, regex, term, strings, diff, syntex_syntax, log, env_logger, getopts]
-"test", "0.1.0", false, []
-"tomllib", "0.1.2", true, [nom, regex, log, env_logger, pirate, csv]
-"tomllib", "0.1.0", true, [nom, regex, log, env_logger]
-"tomllib", "0.1.1", true, [nom, regex, log, env_logger]
-"trietest", "0.1.0", false, [radix_trie]
+find . -name 'Cargo.toml' | ./toml_parser/target/debug/tomlkit -g package.name,package.version --has-value package.license,package.description -c dependencies --set-true "has license","has description" --set-false "no license","no description"
+"methodtest", "0.1.0", no license, no description, [nom]
+"mtailtest", "0.1.0", no license, no description, [mtaillib]
+"multitail", "0.1.0", no license, no description, [term, notify, getopts]
+"mtaillib", "0.1.0", no license, no description, [notify, libc]
+"nomplusplus", "0.1.0", has license, has description, [radix_trie, regex, lazy_static]
+"rproxy", "0.1.0", no license, no description, [radix_trie]
+"radix_trie", "0.0.8", has license, has description, [nibble_vec]
+"rustfmt", "0.2.1", has license, has description, [toml, rustc-serialize, unicode-segmentation, regex, term, strings, diff, syntex_syntax, log, env_logger, getopts]
+"test", "0.1.0", no license, no description, []
+"tomllib", "0.1.2", has license, has description, [nom, regex, log, env_logger, pirate, csv]
+"tomllib", "0.1.0", has license, has description, [nom, regex, log, env_logger]
+"tomllib", "0.1.1", has license, has description, [nom, regex, log, env_logger]
+"tomllib", "0.1.2", has license, has description, [nom, regex, log, env_logger, pirate, csv]
+"trietest", "0.1.0", no license, no description, [radix_trie]
 ```
-## The first release of `tomllib` (0.1.1) is out! Get it on [crates.io](https://crates.io/crates/tomllib)!
+
+- Don't like quotes? `--strip-quotes` (you won't be able to tell the difference between `435` the integer, `435` the basic string, `435` the multi-line basic string, `435` the literal string, and `435` the multi-line literal string, but whatever).
+- Want each value on a new line? `--separator $'\n'`
+- Hate standard array notation? `--array-begin "" --array-end "" --array-separator $'\n'`, you won't be able to tell where the array begins and ends but who needs to know that? Alternatively there's `--array-length` which ditches the beginning and ending array characters and starts the array with an extra `usize` that tells you the length of the following array.
+
 #### I wrote a blog post about my adventures in creating method macros in __nom__. [Give it a read](https://wp.me/p7ikGY-3g)!
 ## `tomllib` is a parser, modifier, and generator for TOML files ***that doesn't judge you***! 
 
