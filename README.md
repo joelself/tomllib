@@ -25,19 +25,17 @@ find . -name 'Cargo.toml' | ./toml_parser/target/debug/tomlkit -g package.name,p
 - Hate standard array notation? `--array-begin "" --array-end "" --array-separator $'\n'`, you won't be able to tell where the array begins and ends but who needs to know that? Alternatively there's `--array-length` which ditches the beginning and ending array characters and starts the array with an extra `usize` that tells you the length of the following array.
 
 #### I wrote a blog post about my adventures in creating method macros in __nom__. [Give it a read](https://wp.me/p7ikGY-3g)!
-## `tomllib` is a parser, modifier, and generator for TOML files ***that doesn't judge you***! 
+## `tomllib` is a parser, modifier, and generator for TOML files ***that doesn't judge you***!
 
-######It is written in Rust using [nom](https://github.com/Geal/nom). `tomlkit` is the command line tool with the same functionality as `tomllib` that is coming soon after the release of tomllib.
+###### It is written in Rust using [nom](https://github.com/Geal/nom). `tomlkit` is the command line tool with the same functionality as `tomllib` that is coming soon after the release of tomllib.
 
 [![Crates.io](https://img.shields.io/crates/v/tomllib.svg)](https://crates.io/crates/tomllib) [![Build Status](https://travis-ci.org/joelself/tomllib.svg?branch=master)](https://travis-ci.org/joelself/toml_parser)  [![Coverage Status](https://coveralls.io/repos/github/joelself/tomllib/badge.svg?branch=master)](https://coveralls.io/github/joelself/tomllib?branch=master)  [![ghit.me](https://ghit.me/badge.svg?repo=joelself/tomllib)](https://ghit.me/repo/joelself/tomllib)
 
-####What does it mean that it doesn't judge me?###
+#### What does it mean that it doesn't judge me?
 
 `tomlib` respects your crazy indentation and whitespace scheme. It respects the order you place things. It doesn't try to reformat the file based on *somebody else's* views on file format purity. It only makes changes that you tell it to make and leaves the rest alone. Want 20 tabs between every key and `=` in a key value pair? Have at it! Want to put a comment and 5 newlines after every array value? We won't try to change your mind! Randomly placed tables and nested tables? It's your file! Do whatever you want and as long as it is within spec; we won't try to change it.
 
 Reference documentation can be found [here](https://github.com/joelself/tomllib).
-
-###`tomllib`###
 
 Based on [my version](https://github.com/joelself/toml/blob/abnf/toml.abnf) of the official [TOML ABNF](https://github.com/toml-lang/toml/blob/abnf/toml.abnf#L54) (at least until they merge my changes). Currently can parse entire Unicode TOML files and reconstruct them into a perfect copy, preserving order and all whitespace. Tested with perfect output on the toml README example, the regular, hard, and unicode hard examples in the [toml test directory](https://github.com/toml-lang/toml/tree/master/tests) as well as all of the valid and invalid tests in [BurntSushi/toml-test](https://github.com/BurntSushi/toml-test/tree/master/tests ) (except for [one invalid test that is actually valid](https://github.com/BurntSushi/toml-test/issues/35)).
 
@@ -98,7 +96,7 @@ match result {
           println!("A mixed array with key {} was encountered on line {}, column {}.", key, line, column);
           assert_eq!("array_of_tables[0].has_error.mixed_array", *key);
           assert_eq!(4, *line);
-          assert_eq!(0, *column); // column reporting is unimplemented so it will always be zero        
+          assert_eq!(0, *column); // column reporting is unimplemented so it will always be zero
         },
         _ => assert!(false),
       }
@@ -136,6 +134,7 @@ Install multirust (you'll have to [uninstall currently installed versions of Rus
 ```shell
 curl -sf https://raw.githubusercontent.com/brson/multirust/master/blastoff.sh | sh
 ```
+
 Change into the toml_parser directory and set that directory (and that directory only) to use Beta Rust:
 
 ```shell
