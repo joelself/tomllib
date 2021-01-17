@@ -346,15 +346,15 @@ fn process_document(file_path: &String, opts: &Options, matches: &Matches, vars:
 }
 
 fn write_to_file(file_path: &String, doc: &TOMLParser) -> Result<(), Error> {
-  let mut f = try!(File::create(file_path));
-  try!(f.write_all(format!("{}",doc).as_bytes()));
-  try!(f.sync_all());
+  let mut f = File::create(file_path)?;
+  f.write_all(format!("{}",doc).as_bytes())?;
+  f.sync_all()?;
   Ok(())
 }
 
 fn get_file(file_path: &String, out_file: &mut String) -> Result<(), Error> {
-  let mut f = try!(File::open(file_path));
-  try!(f.read_to_string(out_file));
+  let mut f = File::open(file_path)?;
+  f.read_to_string(out_file)?;
   Ok(())
 }
 
@@ -465,7 +465,7 @@ fn get_children(csv: &str, sep: &String, arr_start: &String, arr_end: &String, a
           },
           &Children::Count(ref size) => {
             if size.get() == 0 {
-              return return Err(format!("Key \"{}\" has no children.", key));
+              return Err(format!("Key \"{}\" has no children.", key));
             }
             result.push_str(&format!("{}", size.get()))
           },
