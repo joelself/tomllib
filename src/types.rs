@@ -6,7 +6,7 @@ use std::error::Error;
 use std::fmt::Display;
 use std::str::FromStr;
 use std::borrow::Cow;
-use internals::parser::Parser;
+use crate::internals::parser::Parser;
 use nom::IResult;
 
 /// Conveys the result of a parse operation on a TOML document
@@ -1474,7 +1474,7 @@ impl<'a> DateTime<'a> {
 mod test {
   use std::cell::{Cell, RefCell};
   use std::rc::Rc;
-  use types::{Children, Value, Date, Time, DateTime, TimeOffset, TimeOffsetAmount, StrType};
+  use crate::types::{Children, Value, Date, Time, DateTime, TimeOffset, TimeOffsetAmount, StrType};
 
   #[test]
   fn test_combine_keys() {

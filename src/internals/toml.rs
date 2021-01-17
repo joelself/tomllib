@@ -1,5 +1,5 @@
-use internals::ast::structs::{Toml, NLExpression, Expression, WSSep};
-use internals::parser::Parser;
+use crate::internals::ast::structs::{Toml, NLExpression, Expression, WSSep};
+use crate::internals::parser::Parser;
 
 impl<'a> Parser<'a> {
   method!(pub toml<Parser<'a>, &'a str, Toml>, mut self,
@@ -82,9 +82,9 @@ mod test {
   use std::rc::Rc;
   use std::cell::RefCell;
   use nom::IResult::Done;
-  use internals::parser::Parser;
-  use types::{TimeOffsetAmount, DateTime, Date, Time, TimeOffset, StrType};
-  use internals::ast::structs::{Expression, Comment, WSSep, KeyVal, Table, WSKeySep, TableType, TOMLValue, NLExpression,
+  use crate::internals::parser::Parser;
+  use crate::types::{TimeOffsetAmount, DateTime, Date, Time, TimeOffset, StrType};
+  use crate::internals::ast::structs::{Expression, Comment, WSSep, KeyVal, Table, WSKeySep, TableType, TOMLValue, NLExpression,
                                 ArrayValue, Toml, Array, CommentOrNewLines};
 
   #[test]

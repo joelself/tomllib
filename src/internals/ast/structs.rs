@@ -4,7 +4,7 @@ use std::rc::Rc;
 use std::cell::{RefCell, Cell};
 use std::option::Option;
 use std::borrow::Cow;
-use types::{DateTime, StrType, Children, Time, TimeOffset, TimeOffsetAmount,Date, PosNeg};
+use crate::types::{DateTime, StrType, Children, Time, TimeOffset, TimeOffsetAmount,Date, PosNeg};
 
 /// Compares two Options that contain comparable structs
 pub fn comp_opt<T: Eq>(left: &Option<T>, right: &Option<T>) -> bool {
@@ -771,7 +771,7 @@ impl<'a> InlineTable<'a> {
 
 #[cfg(test)]
 mod test {
-  use internals::ast::structs::{Toml, NLExpression, Expression, WSSep, Comment, comp_opt};
+  use crate::internals::ast::structs::{Toml, NLExpression, Expression, WSSep, Comment, comp_opt};
 
   #[test]
   fn test_comp_opt() {

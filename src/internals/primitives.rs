@@ -3,9 +3,9 @@ use std::rc::Rc;
 use std::collections::HashMap;
 use std::collections::hash_map::Entry;
 use std::borrow::Cow;
-use internals::ast::structs::{KeyVal, WSSep, TOMLValue, ErrorCode, HashValue, TableType, Table, get_last_keys};
-use types::{Date, Time, DateTime, TimeOffset, TimeOffsetAmount, ParseError, StrType, Children, Value};
-use internals::parser::Parser;
+use crate::internals::ast::structs::{KeyVal, WSSep, TOMLValue, ErrorCode, HashValue, TableType, Table, get_last_keys};
+use crate::types::{Date, Time, DateTime, TimeOffset, TimeOffsetAmount, ParseError, StrType, Children, Value};
+use crate::internals::parser::Parser;
 use nom;
 use nom::{IResult, InputLength};
 
@@ -677,10 +677,10 @@ impl<'a> Parser<'a> {
 #[cfg(test)]
 mod test {
   use nom::IResult::Done;
-  use internals::ast::structs::{WSSep, Array, ArrayValue, KeyVal, InlineTable, TableKeyVal, TOMLValue,
+  use crate::internals::ast::structs::{WSSep, Array, ArrayValue, KeyVal, InlineTable, TableKeyVal, TOMLValue,
                                 CommentOrNewLines};
-  use types::{DateTime, Time, Date, TimeOffsetAmount, TimeOffset, StrType};
-  use internals::parser::Parser;
+  use crate::types::{DateTime, Time, Date, TimeOffsetAmount, TimeOffset, StrType};
+  use crate::internals::parser::Parser;
   use std::rc::Rc;
   use std::cell::RefCell;
 

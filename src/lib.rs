@@ -84,8 +84,8 @@ pub mod types;
 
 use std::fmt;
 use std::fmt::Display;
-use types::{ParseResult, Value, Children};
-use internals::parser::Parser;
+use crate::types::{ParseResult, Value, Children};
+use crate::internals::parser::Parser;
 
 /// A parser, manipulator, and outputter of TOML documents.
 pub struct TOMLParser<'a> {

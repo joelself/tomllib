@@ -1,5 +1,5 @@
-use internals::ast::structs::Comment;
-use internals::parser::Parser;
+use crate::internals::ast::structs::Comment;
+use crate::internals::parser::Parser;
 
 fn not_eol(chr: char) -> bool {
   chr as u32 == 0x09 || (chr as u32 >= 0x20 && chr as u32 <= 0x10FFF)
@@ -32,8 +32,8 @@ impl<'a> Parser<'a> {
 #[cfg(test)]
 mod test {
   use nom::IResult::Done;
-  use internals::parser::Parser;
-  use internals::ast::structs::Comment;
+  use crate::internals::parser::Parser;
+  use crate::internals::ast::structs::Comment;
 
   #[test]
   fn test_newline() {

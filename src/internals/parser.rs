@@ -5,10 +5,10 @@ use std::collections::hash_map::Entry;
 use std::cell::{Cell, RefCell};
 use std::rc::Rc;
 use std::borrow::Cow;
-use internals::ast::structs::{HashValue, ArrayType, TOMLValue, Toml, TableType, Array, InlineTable, ArrayValue, WSSep,
+use crate::internals::ast::structs::{HashValue, ArrayType, TOMLValue, Toml, TableType, Array, InlineTable, ArrayValue, WSSep,
                               TableKeyVal};
-use types::{ParseError, ParseResult, Value, Children};
-use internals::primitives::Key;
+use crate::types::{ParseError, ParseResult, Value, Children};
+use crate::internals::primitives::Key;
 use nom::IResult;
 
 pub struct Parser<'a> {
@@ -429,8 +429,8 @@ mod test {
   extern crate env_logger;
   use std::cell::{Cell, RefCell};
   use std::rc::Rc;
-  use internals::parser::Parser;
-  use types::{Value, Children, StrType, Date, Time, DateTime};
+  use crate::internals::parser::Parser;
+  use crate::types::{Value, Children, StrType, Date, Time, DateTime};
   struct TT;
   impl TT {
     fn get<'a>() -> &'a str {

@@ -1,8 +1,8 @@
-use internals::ast::structs::{TableType, WSKeySep, Table, CommentNewLines, CommentOrNewLines, ArrayValue, Array,
+use crate::internals::ast::structs::{TableType, WSKeySep, Table, CommentNewLines, CommentOrNewLines, ArrayValue, Array,
                               TOMLValue, InlineTable, WSSep, TableKeyVal, ArrayType, HashValue, format_tt_keys};
-use internals::parser::Parser;
-use internals::primitives::Key;
-use types::{ParseError, Children};
+use crate::internals::parser::Parser;
+use crate::internals::primitives::Key;
+use crate::types::{ParseError, Children};
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::collections::hash_map::Entry;
@@ -599,11 +599,11 @@ mod test {
   use std::rc::Rc;
   use std::cell::{RefCell, Cell};
   use nom::IResult::Done;
-  use types::{DateTime, Date, Time, TimeOffset, TimeOffsetAmount, StrType};
-  use internals::parser::Parser;
-  use internals::ast::structs::{Array, ArrayValue, WSSep, TableKeyVal, InlineTable, WSKeySep, KeyVal, CommentNewLines,
+  use crate::types::{DateTime, Date, Time, TimeOffset, TimeOffsetAmount, StrType};
+  use crate::internals::parser::Parser;
+  use crate::internals::ast::structs::{Array, ArrayValue, WSSep, TableKeyVal, InlineTable, WSKeySep, KeyVal, CommentNewLines,
                                 Comment, CommentOrNewLines, Table, TableType, TOMLValue};
-  use internals::primitives::Key;
+  use crate::internals::primitives::Key;
 
   #[test]
   fn test_table() {
