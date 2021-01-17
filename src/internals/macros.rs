@@ -13,10 +13,12 @@ macro_rules! to_val(
   );
 );
 
+#[allow(unused_macros)]
 macro_rules! call_s(
   ($i:expr, $method:path) => ( $method( $i ) );
 );
 
+#[allow(unused_macros)]
 macro_rules! res2opt(
   ($i:expr) => (
     match $i {

@@ -37,7 +37,7 @@ impl<'a> PartialEq for Toml<'a> {
 impl<'a> Display for Toml<'a> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
       for i in 0..self.exprs.len()-1 {
-        try!(write!(f, "{}", self.exprs[i]));
+        write!(f, "{}", self.exprs[i])?;
       }
     write!(f, "{}", self.exprs[self.exprs.len()-1])
    }
@@ -155,11 +155,11 @@ pub struct HashValue<'a> {
 impl<'a> Display for HashValue<'a> {
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
     match self.subkeys {
-      Children::Count(ref c) => try!(write!(f, "Subkey Count: {}, ", c.get())),
+      Children::Count(ref c) => write!(f, "Subkey Count: {}, ", c.get())?,
       Children::Keys(ref keys) => {
-        try!(write!(f, "Subkey Set: "));
+        write!(f, "Subkey Set: ")?;
         for key in keys.borrow().iter() {
-          try!(write!(f, "{}, ", key));
+          write!(f, "{}, ", key)?;
         }
       },
     }
@@ -464,9 +464,9 @@ impl<'a> PartialEq for Table<'a> {
 impl<'a> Display for Table<'a> {
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
     if self.keys.len() > 0 {
-      try!(write!(f, "{}{}", self.keys[0].ws.ws1, self.keys[0].key));
+      write!(f, "{}{}", self.keys[0].ws.ws1, self.keys[0].key)?;
       for i in 1..self.keys.len() {
-        try!(write!(f, "{}", self.keys[i]));
+        write!(f, "{}", self.keys[i])?;
       }
       write!(f, "{}", self.keys[0].ws.ws2)
     }
@@ -618,11 +618,11 @@ impl<'a> Display for ArrayValue<'a> {
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
     if self.comment_nls.len() > 0 {
       match self.array_sep {
-        Some(ref s) => try!(write!(f, "{}{},{}", *self.val.borrow(), s.ws1, s.ws2)),
-        None => try!(write!(f, "{}", *self.val.borrow())),
+        Some(ref s) => write!(f, "{}{},{}", *self.val.borrow(), s.ws1, s.ws2)?,
+        None => write!(f, "{}", *self.val.borrow())?,
       }
       for i in 0..self.comment_nls.len() - 1 {
-        try!(write!(f, "{}", self.comment_nls[i]));
+        write!(f, "{}", self.comment_nls[i])?;
       }
       write!(f, "{}", self.comment_nls[self.comment_nls.len() - 1])
     } else {
@@ -665,15 +665,15 @@ impl<'a> PartialEq for Array<'a> {
 
 impl<'a> Display for Array<'a> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-      try!(write!(f, "["));
+      write!(f, "[")?;
       for comment_nl in self.comment_nls1.iter() {
-        try!(write!(f, "{}", comment_nl));
+        write!(f, "{}", comment_nl)?;
       }
       for val in self.values.iter() {
-        try!(write!(f, "{}", val));
+        write!(f, "{}", val)?;
       }
       for comment_nl in self.comment_nls2.iter() {
-        try!(write!(f, "{}", comment_nl));
+        write!(f, "{}", comment_nl)?;
       }
       write!(f, "]")
     }
@@ -706,11 +706,11 @@ impl<'a> Display for TableKeyVal<'a> {
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
     if self.comment_nls.len() > 0 {
       match self.kv_sep {
-        Some(ref s) => try!(write!(f, "{}{},{}", self.keyval, s.ws1, s.ws2)),
-        None => try!(write!(f, "{}", self.keyval)),
+        Some(ref s) => write!(f, "{}{},{}", self.keyval, s.ws1, s.ws2)?,
+        None => write!(f, "{}", self.keyval)?,
       }
       for i in 0..self.comment_nls.len() - 1 {
-        try!(write!(f, "{}", self.comment_nls[i]));
+        write!(f, "{}", self.comment_nls[i])?;
       }
       write!(f, "{}", self.comment_nls[self.comment_nls.len() - 1])
     } else {
@@ -752,12 +752,12 @@ impl<'a> PartialEq for InlineTable<'a> {
 
 impl<'a> Display for InlineTable<'a> {
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-    try!(write!(f, "{{{}", self.ws.ws1));
+    write!(f, "{{{}", self.ws.ws1)?;
     for i in 0..self.keyvals.len() - 1 {
-      try!(write!(f, "{}", self.keyvals[i]));
+      write!(f, "{}", self.keyvals[i])?;
     }
     if self.keyvals.len() > 0 {
-      try!(write!(f, "{}", self.keyvals[self.keyvals.len() - 1]));
+      write!(f, "{}", self.keyvals[self.keyvals.len() - 1])?;
     }
     write!(f, "{}}}", self.ws.ws2)
   }
