@@ -459,10 +459,14 @@ properties = { color = "red", "plate number" = "ABC 345",
     }
   }
 
+  #[cfg(test)]
+  #[ctor::ctor]
+  fn init() {
+    let _ = env_logger::builder().is_test(true).try_init();
+  }
 
   #[test]
   fn test_bare_key() {
-    let _ = env_logger::init();
     let p = Parser::new();
     let (p, _) = p.parse(TT::get());
     assert_eq!(p.get_value("animal".to_string()), res2opt!(Value::basic_string("bear")));
@@ -470,7 +474,6 @@ properties = { color = "red", "plate number" = "ABC 345",
 
   #[test]
   fn test_key_val() {
-    let _ = env_logger::init();
     let p = Parser::new();
     let (p, _) = p.parse(TT::get());
     assert_eq!(p.get_value("car.model"), res2opt!(Value::basic_string("Civic")));
@@ -478,7 +481,6 @@ properties = { color = "red", "plate number" = "ABC 345",
 
   #[test]
   fn test_quoted_key_val_int() {
-    let _ = env_logger::init();
     let p = Parser::new();
     let (p, _) = p.parse(TT::get());
     assert_eq!(p.get_value("car.\"ωλèèℓƨ\""), res2opt!(Value::int_from_str("4")));
@@ -486,7 +488,6 @@ properties = { color = "red", "plate number" = "ABC 345",
 
   #[test]
   fn test_quoted_key_val_float() {
-    let _ = env_logger::init();
     let p = Parser::new();
     let (p, _) = p.parse(TT::get());
     assert_eq!(p.get_value("car.\"ƭôƥ ƨƥèèδ\""), res2opt!(Value::float_from_str("124.56")));
@@ -494,7 +495,6 @@ properties = { color = "red", "plate number" = "ABC 345",
 
   #[test]
   fn test_key_array() {
-    let _ = env_logger::init();
     let p = Parser::new();
     let (p, _) = p.parse(TT::get());
     assert_eq!(p.get_value("car.drivers[0]"), res2opt!(Value::basic_string("Bob")));
@@ -507,7 +507,6 @@ properties = { color = "red", "plate number" = "ABC 345",
 
   #[test]
   fn test_key_inline_table() {
-    let _ = env_logger::init();
     let p = Parser::new();
     let (p, _) = p.parse(TT::get());
     assert_eq!(p.get_value("car.properties.color"), res2opt!(Value::basic_string("red")));
@@ -519,7 +518,6 @@ properties = { color = "red", "plate number" = "ABC 345",
 
   #[test]
   fn test_implicit_table() {
-    let _ = env_logger::init();
     let p = Parser::new();
     let (p, _) = p.parse(TT::get());
     assert_eq!(p.get_value("car.interior.seats.type"), res2opt!(Value::ml_literal_string("fabric")));
@@ -528,7 +526,6 @@ properties = { color = "red", "plate number" = "ABC 345",
 
   #[test]
   fn test_array_table() {
-    let _ = env_logger::init();
     let p = Parser::new();
     let (p, _) = p.parse(TT::get());
     assert_eq!(p.get_value("car.owners[0].Name"), res2opt!(Value::ml_basic_string("Bob Jones")));
@@ -539,7 +536,6 @@ properties = { color = "red", "plate number" = "ABC 345",
 
   #[test]
   fn test_get_root_children() {
-    let _ = env_logger::init();
     let p = Parser::new();
     let (p, _) = p.parse(TT::get());
     assert_eq!(p.get_children(""), Some(&Children::Keys(RefCell::new(vec!["animal".to_string(), "car".to_string()]))));
@@ -547,7 +543,6 @@ properties = { color = "red", "plate number" = "ABC 345",
 
   #[test]
   fn test_get_table_children() {
-    let _ = env_logger::init();
     let p = Parser::new();
     let (p, _) = p.parse(TT::get());
     assert_eq!(p.get_children("car".to_string()),
@@ -558,7 +553,6 @@ properties = { color = "red", "plate number" = "ABC 345",
 
   #[test]
   fn test_get_array_children() {
-    let _ = env_logger::init();
     let p = Parser::new();
     let (p, _) = p.parse(TT::get());
     assert_eq!(p.get_children("car.drivers"), Some(&Children::Count(Cell::new(5))));
@@ -566,7 +560,6 @@ properties = { color = "red", "plate number" = "ABC 345",
 
   #[test]
   fn test_get_inline_table_children() {
-    let _ = env_logger::init();
     let p = Parser::new();
     let (p, _) = p.parse(TT::get());
     assert_eq!(p.get_children("car.properties"),
@@ -575,7 +568,6 @@ properties = { color = "red", "plate number" = "ABC 345",
 
   #[test]
   fn test_get_nested_inline_table_children() {
-    let _ = env_logger::init();
     let p = Parser::new();
     let (p, _) = p.parse(TT::get());
     assert_eq!(p.get_children("car.drivers[4]"),
@@ -584,7 +576,6 @@ properties = { color = "red", "plate number" = "ABC 345",
 
   #[test]
   fn test_get_nested_array_children() {
-    let _ = env_logger::init();
     let p = Parser::new();
     let (p, _) = p.parse(TT::get());
     assert_eq!(p.get_children("car.properties.accident_dates"), Some(&Children::Count(Cell::new(3))));
@@ -592,7 +583,6 @@ properties = { color = "red", "plate number" = "ABC 345",
 
   #[test]
   fn test_implicit_table_children() {
-    let _ = env_logger::init();
     let p = Parser::new();
     let (p, _) = p.parse(TT::get());
     assert_eq!(p.get_children("car.interior.seats"),
@@ -601,7 +591,6 @@ properties = { color = "red", "plate number" = "ABC 345",
 
   #[test]
   fn test_get_array_of_table_children() {
-    let _ = env_logger::init();
     let p = Parser::new();
     let (p, _) = p.parse(TT::get());
     assert_eq!(p.get_children("car.owners"), Some(&Children::Count(Cell::new(2))));
@@ -609,7 +598,6 @@ properties = { color = "red", "plate number" = "ABC 345",
 
   #[test]
   fn test_get_array_of_table0_children() {
-    let _ = env_logger::init();
     let p = Parser::new();
     let (p, _) = p.parse(TT::get());
     assert_eq!(p.get_children("car.owners[0]"),
@@ -618,7 +606,6 @@ properties = { color = "red", "plate number" = "ABC 345",
 
   #[test]
   fn test_get_array_of_table1_children() {
-    let _ = env_logger::init();
     let p = Parser::new();
     let (p, _) = p.parse(TT::get());
     assert_eq!(p.get_children("car.owners[1]"),
@@ -627,7 +614,6 @@ properties = { color = "red", "plate number" = "ABC 345",
 
   #[test]
   fn test_set_bare_key() {
-    let _ = env_logger::init();
     let p = Parser::new();
     let (mut p, _) = p.parse(TT::get());
     p.set_value("animal", Value::ml_basic_string("shark").unwrap());
@@ -637,7 +623,6 @@ properties = { color = "red", "plate number" = "ABC 345",
 
   #[test]
   fn test_set_table_key() {
-    let _ = env_logger::init();
     let p = Parser::new();
     let (mut p, _) = p.parse(TT::get());
     p.set_value("car.model", Value::literal_string("Accord").unwrap());
@@ -647,7 +632,6 @@ properties = { color = "red", "plate number" = "ABC 345",
 
   #[test]
   fn test_set_array_element_key() {
-    let _ = env_logger::init();
     let p = Parser::new();
     let (mut p, _) = p.parse(TT::get());
     p.set_value("car.drivers[1]", Value::ml_literal_string("Mark").unwrap());
@@ -657,7 +641,6 @@ properties = { color = "red", "plate number" = "ABC 345",
 
   #[test]
   fn test_set_nested_aray_element_key() {
-    let _ = env_logger::init();
     let p = Parser::new();
     let (mut p, _) = p.parse(TT::get());
     p.set_value("car.properties.accident_dates[2]", Value::float(3443.34));
@@ -667,7 +650,6 @@ properties = { color = "red", "plate number" = "ABC 345",
 
   #[test]
   fn test_set_inline_table_element_key() {
-    let _ = env_logger::init();
     let p = Parser::new();
     let (mut p, _) = p.parse(TT::get());
     p.set_value("car.properties.color", Value::int(19));
@@ -677,7 +659,6 @@ properties = { color = "red", "plate number" = "ABC 345",
 
   #[test]
   fn test_set_nested_inline_table_element_key() {
-    let _ = env_logger::init();
     let p = Parser::new();
     let (mut p, _) = p.parse(TT::get());
     p.set_value("car.drivers[4].banned", Value::datetime_from_int(2013, 9, 23, 17, 34, 2).unwrap());
@@ -688,7 +669,6 @@ properties = { color = "red", "plate number" = "ABC 345",
 
   #[test]
   fn test_truncate_array() {
-    let _ = env_logger::init();
     let p = Parser::new();
     let (mut p, _) = p.parse(TT::get());
     p.set_value("car.drivers", Value::Array(Rc::new(
@@ -704,7 +684,6 @@ properties = { color = "red", "plate number" = "ABC 345",
 
   #[test]
   fn test_truncate_inline_table() {
-    let _ = env_logger::init();
     let p = Parser::new();
     let (mut p, _) = p.parse(TT::get());
     p.set_value("car.properties", Value::InlineTable(Rc::new(
@@ -720,7 +699,6 @@ properties = { color = "red", "plate number" = "ABC 345",
 
   #[test]
   fn test_extend_array() {
-    let _ = env_logger::init();
     let p = Parser::new();
     let (mut p, _) = p.parse(TT::get());
     p.set_value("car.drivers", Value::Array(Rc::new(
@@ -743,7 +721,6 @@ properties = { color = "red", "plate number" = "ABC 345",
 
   #[test]
   fn test_extend_inline_table() {
-    let _ = env_logger::init();
     let p = Parser::new();
     let (mut p, _) = p.parse(TT::get());
     p.set_value("car.properties", Value::InlineTable(Rc::new(
@@ -763,7 +740,6 @@ properties = { color = "red", "plate number" = "ABC 345",
 
   #[test]
   fn test_set_implicit_table_key() {
-    let _ = env_logger::init();
     let p = Parser::new();
     let (mut p, _) = p.parse(TT::get());
     p.set_value("car.interior.seats.type", Value::basic_string("leather").unwrap());
@@ -773,7 +749,6 @@ properties = { color = "red", "plate number" = "ABC 345",
 
   #[test]
   fn test_set_array_of_table0_key() {
-    let _ = env_logger::init();
     let p = Parser::new();
     let (mut p, _) = p.parse(TT::get());
     p.set_value("car.owners[0].Age", Value::float_from_str("19.5").unwrap());
@@ -783,7 +758,6 @@ properties = { color = "red", "plate number" = "ABC 345",
 
   #[test]
   fn test_set_array_of_table1_key() {
-    let _ = env_logger::init();
     let p = Parser::new();
     let (mut p, _) = p.parse(TT::get());
     p.set_value("car.owners[1].Name", Value::ml_basic_string("Steve Parker").unwrap());
@@ -793,7 +767,6 @@ properties = { color = "red", "plate number" = "ABC 345",
 
   #[test]
   fn test_truncate_array_check_keys() {
-    let _ = env_logger::init();
     let p = Parser::new();
     let (mut p, _) = p.parse(TT::get());
     p.set_value("database.ports", Value::datetime_from_int(2000, 02, 16, 10, 31, 06).unwrap());
@@ -806,7 +779,6 @@ properties = { color = "red", "plate number" = "ABC 345",
 
   #[test]
   fn test_truncate_inline_table_check_keys() {
-    let _ = env_logger::init();
     let p = Parser::new();
     let (mut p, _) = p.parse(TT::get());
     p.set_value("database.servers", Value::datetime_from_str("4000", "02", "27", "01", "59", "59").unwrap());
