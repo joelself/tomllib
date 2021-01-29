@@ -104,14 +104,18 @@ fn test_all_assets(valid: bool) {
   }
 }
 
+#[cfg(test)]
+#[ctor::ctor]
+fn init() {
+  let _ = env_logger::builder().is_test(true).try_init();
+}
+
 #[test]
 fn test_valid_assets() {
-  let _ = env_logger::init();
   test_all_assets(true /*valid*/);
 }
 
 #[test]
 fn test_invalid_assets() {
-  let _ = env_logger::init();
   test_all_assets(false /*valid*/);
 }
