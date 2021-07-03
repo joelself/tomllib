@@ -46,7 +46,7 @@ impl<'a> Display for Toml<'a> {
 #[allow(dead_code)]
 impl<'a> Toml<'a> {
   pub fn new(exprs: Vec<NLExpression<'a>>) -> Toml<'a> {
-    Toml{exprs: exprs}
+    Toml{exprs}
   }
 }
 
@@ -72,10 +72,10 @@ impl<'a> Display for NLExpression<'a> {
 #[allow(dead_code)]
 impl<'a> NLExpression<'a> {
   pub fn new_str(nl: &'a str, expr: Expression<'a>) -> NLExpression<'a> {
-    NLExpression{nl: nl.into(), expr: expr}
+    NLExpression{nl: nl.into(), expr}
   }
   pub fn new_string(nl: String, expr: Expression<'a>) -> NLExpression<'a> {
-    NLExpression{nl: nl.into(), expr: expr}
+    NLExpression{nl: nl.into(), expr}
   }
 }
 
@@ -118,10 +118,11 @@ impl<'a> Display for Expression<'a> {
 impl<'a> Expression<'a> {
   pub fn new(ws: WSSep<'a>, keyval: Option<KeyVal<'a>>, table: Option<Rc<TableType<'a>>>,
     comment: Option<Comment<'a>>) -> Expression<'a> {
-    Expression{ws: ws, keyval: keyval, table: table, comment: comment}
+    Expression{ws, keyval, table, comment}
   }
 }
 
+#[allow(clippy::large_enum_variant)]
 #[derive(Debug, Eq, Clone)]
 pub enum TOMLValue<'a> {
   Integer(Cow<'a, str>),
@@ -241,22 +242,22 @@ impl<'a> PartialEq for TOMLValue<'a> {
 
 impl<'a> Display for TOMLValue<'a> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-    match self {
-      &TOMLValue::Integer(ref i) => write!(f, "{}", i),
-      &TOMLValue::Float(ref i) => write!(f, "{}", i),
-      &TOMLValue::Boolean(ref i) => write!(f, "{}", i),
-      &TOMLValue::DateTime(ref i) => write!(f, "{}", i),
-      &TOMLValue::Array(ref i) => write!(f, "{}", *i.borrow()),
-      &TOMLValue::InlineTable(ref i) => write!(f, "{}", *i.borrow()),
-      &TOMLValue::String(ref i, ref t) =>  {
-        match t {
-          &StrType::Basic => write!(f, "\"{}\"", i),
-          &StrType::MLBasic => write!(f, "\"\"\"{}\"\"\"", i),
-          &StrType::Literal => write!(f, "'{}'", i),
-          &StrType::MLLiteral => write!(f, "'''{}'''", i),
+    match *self {
+      TOMLValue::Integer(ref i) => write!(f, "{}", i),
+      TOMLValue::Float(ref i) => write!(f, "{}", i),
+      TOMLValue::Boolean(ref i) => write!(f, "{}", i),
+      TOMLValue::DateTime(ref i) => write!(f, "{}", i),
+      TOMLValue::Array(ref i) => write!(f, "{}", *i.borrow()),
+      TOMLValue::InlineTable(ref i) => write!(f, "{}", *i.borrow()),
+      TOMLValue::String(ref i, ref t) =>  {
+        match *t {
+          StrType::Basic => write!(f, "\"{}\"", i),
+          StrType::MLBasic => write!(f, "\"\"\"{}\"\"\"", i),
+          StrType::Literal => write!(f, "'{}'", i),
+          StrType::MLLiteral => write!(f, "'''{}'''", i),
         }
       },
-      &TOMLValue::Table => write!(f, "$Table"),
+      TOMLValue::Table => write!(f, "$Table"),
     }
   }
 }
@@ -279,9 +280,9 @@ impl<'a> PartialEq for TableType<'a> {
 
 impl<'a> Display for TableType<'a> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-      match self {
-        &TableType::Standard(ref t) => write!(f, "[{}]", t),
-        &TableType::Array(ref t) => write!(f, "[[{}]]", t),
+      match *self {
+        TableType::Standard(ref t) => write!(f, "[{}]", t),
+        TableType::Array(ref t) => write!(f, "[[{}]]", t),
       }
     }
 }
@@ -362,10 +363,10 @@ impl<'a> Display for KeyVal<'a> {
 #[allow(dead_code)]
 impl<'a> KeyVal<'a> {
     pub fn new_str(key: &'a str, keyval_sep: WSSep<'a>, val: Rc<RefCell<TOMLValue<'a>>>) -> KeyVal<'a> {
-      KeyVal{key: key.into(), keyval_sep: keyval_sep, val: val}
+      KeyVal{key: key.into(), keyval_sep, val}
     }
     pub fn new_string(key: String, keyval_sep: WSSep<'a>, val: Rc<RefCell<TOMLValue<'a>>>) -> KeyVal<'a> {
-      KeyVal{key: key.into(), keyval_sep: keyval_sep, val: val}
+      KeyVal{key: key.into(), keyval_sep, val}
     }
 }
 
@@ -392,10 +393,10 @@ impl<'a> Display for WSKeySep<'a> {
 #[allow(dead_code)]
 impl<'a> WSKeySep<'a> {
     pub fn new_str(ws: WSSep<'a>, key: &'a str) -> WSKeySep<'a> {
-      WSKeySep{ws: ws, key: key.into()}
+      WSKeySep{ws, key: key.into()}
     }
     pub fn new_string(ws: WSSep<'a>, key: String) -> WSKeySep<'a> {
-      WSKeySep{ws: ws, key: key.into()}
+      WSKeySep{ws, key: key.into()}
     }
 }
 
@@ -422,7 +423,7 @@ pub fn get_last_keys(last_table: Option<&Table>, t: &Table) -> Vec<String> {
 
 pub fn format_keys(t: &Table) -> String {
   let mut s = String::new();
-  if t.keys.len() > 0 {
+  if !t.keys.is_empty() {
     for i in 0..t.keys.len() - 1 {
       s.push_str(&t.keys[i].key);
       s.push('.');
@@ -436,7 +437,7 @@ pub fn format_tt_keys(tabletype: &TableType) -> String {
   match tabletype {
     &TableType::Standard(ref t) | &TableType::Array(ref t) => {
       let mut s = String::new();
-      if t.keys.len() > 0 {
+      if !t.keys.is_empty() {
         for i in 0..t.keys.len() - 1 {
           s.push_str(&t.keys[i].key);
           s.push('.');
@@ -463,7 +464,7 @@ impl<'a> PartialEq for Table<'a> {
 
 impl<'a> Display for Table<'a> {
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-    if self.keys.len() > 0 {
+    if !self.keys.is_empty() {
       write!(f, "{}{}", self.keys[0].ws.ws1, self.keys[0].key)?;
       for i in 1..self.keys.len() {
         write!(f, "{}", self.keys[i])?;
@@ -533,12 +534,12 @@ impl<'a> Display for CommentNewLines<'a> {
 impl<'a> CommentNewLines<'a> {
     pub fn new_str(pre_ws_nl: &'a str, comment: Comment<'a>, newlines: &'a str)
       -> CommentNewLines<'a> {
-      CommentNewLines{pre_ws_nl: pre_ws_nl.into(), comment: comment,
+      CommentNewLines{pre_ws_nl: pre_ws_nl.into(), comment,
         newlines: newlines.into()}
     }
     pub fn new_string(pre_ws_nl: String, comment: Comment<'a>, newlines: String)
       -> CommentNewLines<'a> {
-      CommentNewLines{pre_ws_nl: pre_ws_nl.into(), comment: comment,
+      CommentNewLines{pre_ws_nl: pre_ws_nl.into(), comment,
         newlines: newlines.into()}
     }
 }
@@ -561,9 +562,9 @@ impl<'a> PartialEq for CommentOrNewLines<'a> {
 
 impl<'a> Display for CommentOrNewLines<'a> {
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-    match self {
-      &CommentOrNewLines::Comment(ref c) => write!(f, "{}", c),
-      &CommentOrNewLines::NewLines(ref n) => write!(f, "{}", n),
+    match *self {
+      CommentOrNewLines::Comment(ref c) => write!(f, "{}", c),
+      CommentOrNewLines::NewLines(ref n) => write!(f, "{}", n),
     }
   }
 }
@@ -579,10 +580,10 @@ impl<'a> Time<'a> {
     -> Time<'a> {
     if let Some(s) = fraction {
       Time{hour: hour.into(), minute: minute.into(), second: second.into(),
-        fraction: Some(s.into()), offset: offset}
+        fraction: Some(s.into()), offset}
     } else {
       Time{hour: hour.into(), minute: minute.into(), second: second.into(),
-        fraction: None, offset: offset}
+        fraction: None, offset}
     }
   }
 }
@@ -616,7 +617,7 @@ impl<'a> PartialEq for ArrayValue<'a> {
 
 impl<'a> Display for ArrayValue<'a> {
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-    if self.comment_nls.len() > 0 {
+    if !self.comment_nls.is_empty() {
       match self.array_sep {
         Some(ref s) => write!(f, "{}{},{}", *self.val.borrow(), s.ws1, s.ws2)?,
         None => write!(f, "{}", *self.val.borrow())?,
@@ -637,13 +638,13 @@ impl<'a> Display for ArrayValue<'a> {
 impl<'a> ArrayValue<'a> {
   pub fn new(val: Rc<RefCell<TOMLValue<'a>>>, array_sep: Option<WSSep<'a>>,
     comment_nls: Vec<CommentOrNewLines<'a>>) -> ArrayValue<'a> {
-    ArrayValue{val: val, array_sep: array_sep, comment_nls: comment_nls}
+    ArrayValue{val, array_sep, comment_nls}
   }
   pub fn default(val: Rc<RefCell<TOMLValue<'a>>>) -> ArrayValue<'a> {
-    ArrayValue{val: val, array_sep: Some(WSSep::new_str("", " ")), comment_nls: vec![]}
+    ArrayValue{val, array_sep: Some(WSSep::new_str("", " ")), comment_nls: vec![]}
   }
   pub fn last(val: Rc<RefCell<TOMLValue<'a>>>) -> ArrayValue<'a> {
-    ArrayValue{val: val, array_sep: None, comment_nls: vec![]}
+    ArrayValue{val, array_sep: None, comment_nls: vec![]}
   }
 }
 
@@ -682,7 +683,7 @@ impl<'a> Display for Array<'a> {
 impl<'a> Array<'a> {
   pub fn new(values: Vec<ArrayValue<'a>>, comment_nls1: Vec<CommentOrNewLines<'a>>,
     comment_nls2: Vec<CommentOrNewLines<'a>>,) -> Array<'a> {
-    Array{values: values, comment_nls1: comment_nls1, comment_nls2: comment_nls2}
+    Array{values, comment_nls1, comment_nls2}
   }
 }
 
@@ -697,14 +698,13 @@ pub struct TableKeyVal<'a> {
 impl<'a> PartialEq for TableKeyVal<'a> {
   fn eq(&self, other: &TableKeyVal<'a>) -> bool {
     self.keyval == other.keyval &&
-    self.kv_sep == other.kv_sep &&
-    self.comment_nls == self.comment_nls
+    self.kv_sep == other.kv_sep
   }
 }
 
 impl<'a> Display for TableKeyVal<'a> {
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-    if self.comment_nls.len() > 0 {
+    if !self.comment_nls.is_empty() {
       match self.kv_sep {
         Some(ref s) => write!(f, "{}{},{}", self.keyval, s.ws1, s.ws2)?,
         None => write!(f, "{}", self.keyval)?,
@@ -724,15 +724,15 @@ impl<'a> Display for TableKeyVal<'a> {
 
 impl<'a> TableKeyVal<'a> {
     pub fn new(keyval: KeyVal<'a>, kv_sep: Option<WSSep<'a>>, comment_nls: Vec<CommentOrNewLines<'a>>) -> TableKeyVal<'a> {
-      TableKeyVal{keyval: keyval, kv_sep: kv_sep, comment_nls: comment_nls}
+      TableKeyVal{keyval, kv_sep, comment_nls}
     }
     pub fn default<S>(key: S, val: Rc<RefCell<TOMLValue<'a>>>) -> TableKeyVal<'a> where S: Into<String> {
       let keyval = KeyVal::new_string(key.into(), WSSep::new_str(" ", " "), val);
-      TableKeyVal{keyval: keyval, kv_sep: Some(WSSep::new_str("", " ")), comment_nls: vec![]}
+      TableKeyVal{keyval, kv_sep: Some(WSSep::new_str("", " ")), comment_nls: vec![]}
     }
     pub fn last<S>(key: S, val: Rc<RefCell<TOMLValue<'a>>>) -> TableKeyVal<'a> where S: Into<String> {
       let keyval = KeyVal::new_string(key.into(), WSSep::new_str(" ", " "), val);
-      TableKeyVal{keyval: keyval, kv_sep: None, comment_nls: vec![]}
+      TableKeyVal{keyval, kv_sep: None, comment_nls: vec![]}
     }
 }
 
@@ -756,7 +756,7 @@ impl<'a> Display for InlineTable<'a> {
     for i in 0..self.keyvals.len() - 1 {
       write!(f, "{}", self.keyvals[i])?;
     }
-    if self.keyvals.len() > 0 {
+    if !self.keyvals.is_empty() {
       write!(f, "{}", self.keyvals[self.keyvals.len() - 1])?;
     }
     write!(f, "{}}}", self.ws.ws2)
@@ -765,7 +765,7 @@ impl<'a> Display for InlineTable<'a> {
 
 impl<'a> InlineTable<'a> {
   pub fn new(keyvals: Vec<TableKeyVal<'a>>, ws: WSSep<'a>) -> InlineTable<'a> {
-    InlineTable{keyvals: keyvals, ws: ws}
+    InlineTable{keyvals, ws}
   }
 }
 

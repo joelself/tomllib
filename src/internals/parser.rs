@@ -32,7 +32,7 @@ impl<'a> Parser<'a> {
   pub fn new() -> Parser<'a> {
     let mut map = HashMap::new();
     map.insert("$Root$".to_string(), HashValue::none_keys());
-    Parser{ root: RefCell::new(Toml{ exprs: vec![] }), map: map,
+    Parser{ root: RefCell::new(Toml{ exprs: vec![] }), map,
             errors: Rc::new(RefCell::new(vec![])), leftover: "",
             line_count: Cell::new(1), last_array_tables: RefCell::new(vec![]),
             last_array_tables_index: RefCell::new(vec![]),

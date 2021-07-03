@@ -12,15 +12,15 @@ use nom::IResult;
 
 #[inline(always)]
 fn map_val_to_array_type(val: &TOMLValue) -> ArrayType {
-  match val {
-    &TOMLValue::Integer(_)        => ArrayType::Integer,
-    &TOMLValue::Float(_)          => ArrayType::Float,
-    &TOMLValue::Boolean(_)        => ArrayType::Boolean,
-    &TOMLValue::DateTime(_)       => ArrayType::DateTime,
-    &TOMLValue::Array(_)          => ArrayType::Array,
-    &TOMLValue::String(_,_)       => ArrayType::String,
-    &TOMLValue::InlineTable(_)    => ArrayType::InlineTable,
-    &TOMLValue::Table             => panic!("Cannot have a table in an array"),
+  match *val {
+    TOMLValue::Integer(_)        => ArrayType::Integer,
+    TOMLValue::Float(_)          => ArrayType::Float,
+    TOMLValue::Boolean(_)        => ArrayType::Boolean,
+    TOMLValue::DateTime(_)       => ArrayType::DateTime,
+    TOMLValue::Array(_)          => ArrayType::Array,
+    TOMLValue::String(_,_)       => ArrayType::String,
+    TOMLValue::InlineTable(_)    => ArrayType::InlineTable,
+    TOMLValue::Table             => panic!("Cannot have a table in an array"),
   }
 }
 
@@ -33,7 +33,7 @@ impl<'a> Parser<'a> {
       }
     }
     vector.borrow_mut().push(insert);
-    return true;
+    true
   }
 
   fn contains(vector: &RefCell<Vec<String>>, find: &str) -> bool {
@@ -42,18 +42,18 @@ impl<'a> Parser<'a> {
         return true;
       }
     }
-    return false;
+    false
   }
 
   fn is_top_std_table(tables: &RefCell<Vec<Rc<TableType<'a>>>>) -> bool {
     if tables.borrow().len() ==  0 {
-      return false;
+      false
     } else {
       let len = tables.borrow().len();
       if let TableType::Standard(_) = *tables.borrow()[len - 1] {
-        return true;
+        true
       } else {
-        return false;
+        false
       }
     }
   }

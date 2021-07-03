@@ -5,6 +5,7 @@ fn not_eol(chr: char) -> bool {
   chr as u32 == 0x09 || (chr as u32 >= 0x20 && chr as u32 <= 0x10FFF)
 }
 
+#[allow(clippy::manual_strip)] // TODO fix
 impl<'a> Parser<'a> {
   // Newline
   method!(pub newline<Parser<'a>, &'a str,  &'a str>, self,

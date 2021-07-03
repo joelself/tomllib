@@ -459,6 +459,7 @@ impl<'a> Value<'a> {
   ///   Some(Time::from_str("01", "02", "03", None, None).unwrap()))),
   ///   Value::datetime_from_int(2010, 4, 10, 1, 2, 3).unwrap());
   /// ```
+  #[allow(clippy::many_single_char_names)]
   pub fn datetime_from_int(year: usize, month: usize, day: usize, hour: usize, minute: usize, second: usize) -> Result<Value<'a>, TOMLError> {
     let y = format!("{:0>4}", year);
     let m = format!("{:0>2}", month);
@@ -515,6 +516,7 @@ impl<'a> Value<'a> {
   ///   Some(Time::from_str("01", "02", "03", Some("5432".into()), None).unwrap()))),
   ///   Value::datetime_frac_from_int(2010, 4, 10, 1, 2, 3, 5432).unwrap());
   /// ```
+  #[allow(clippy::many_single_char_names)]
   pub fn datetime_frac_from_int(year: usize, month: usize, day: usize, hour: usize, minute: usize, second: usize, frac: usize) -> Result<Value<'a>, TOMLError> {
     let y = format!("{:0>4}", year);
     let m = format!("{:0>2}", month);
@@ -573,6 +575,7 @@ impl<'a> Value<'a> {
   ///   ).unwrap()))).unwrap()))),
   ///   Value::datetime_offset_from_int(2010, 4, 10, 1, 2, 3, '+', 8, 0).unwrap());
   /// ```
+  #[allow(clippy::many_single_char_names)]
   pub fn datetime_offset_from_int(year: usize, month: usize, day: usize, hour: usize, minute: usize, second: usize, posneg: char, off_hour: usize, off_minute: usize) -> Result<Value<'a>, TOMLError> {
     let y = format!("{:0>4}", year);
     let m = format!("{:0>2}", month);
@@ -645,6 +648,7 @@ impl<'a> Value<'a> {
   ///   Some(Time::from_str("01", "02", "03", None, Some(TimeOffset::Zulu)).unwrap()))),
   ///   Value::datetime_zulu_from_int(2010, 4, 10, 1, 2, 3).unwrap());
   /// ```
+  #[allow(clippy::many_single_char_names)]
   pub fn datetime_zulu_from_int(year: usize, month: usize, day: usize, hour: usize, minute: usize, second: usize) -> Result<Value<'a>, TOMLError> {
     let y = format!("{:0>4}", year);
     let m = format!("{:0>2}", month);
@@ -703,6 +707,7 @@ impl<'a> Value<'a> {
   ///   Some(Time::from_str("01", "02", "03", Some("5678".into()), Some(TimeOffset::Zulu)).unwrap()))),
   ///   Value::datetime_full_zulu_from_int(2010, 4, 10, 1, 2, 3, 5678).unwrap());
   /// ```
+  #[allow(clippy::many_single_char_names)]
   pub fn datetime_full_zulu_from_int(year: usize, month: usize, day: usize, hour: usize, minute: usize, second: usize, frac: u64) -> Result<Value<'a>, TOMLError> {
     let y = format!("{:0>4}", year);
     let m = format!("{:0>2}", month);
@@ -765,6 +770,7 @@ impl<'a> Value<'a> {
   ///   ).unwrap()))).unwrap()))),
   ///   Value::datetime_full_from_int(2010, 4, 10, 1, 2, 3, 135, '-', 11, 0).unwrap());
   /// ```
+  #[allow(clippy::many_single_char_names)]
   pub fn datetime_full_from_int(year: usize, month: usize, day: usize, hour: usize, minute: usize, second: usize, frac: u64, posneg: char, off_hour: usize, off_minute: usize) -> Result<Value<'a>, TOMLError> {
     let y = format!("{:0>4}", year);
     let m = format!("{:0>2}", month);
@@ -1273,7 +1279,8 @@ impl<'a> Date<'a> {
               }
               if leap_year && d > 29 {
                 return false;
-              } else if !leap_year && d > 28 {
+              }
+              if !leap_year && d > 28 {
                 return false;
               }
             },
@@ -1343,7 +1350,7 @@ impl<'a> Time<'a> {
     -> Result<Time<'a>, TOMLError> where S: Into<String> {
     if let Some(s) = fraction {
       let time = Time{hour: hour.into().into(), minute: minute.into().into(), second: second.into().into(),
-        fraction: Some(s.into().into()), offset: offset};
+        fraction: Some(s.into().into()), offset};
       if time.validate() {
         return Ok(time);
       } else {
@@ -1351,7 +1358,7 @@ impl<'a> Time<'a> {
       }
     } else {
       let time = Time{hour: hour.into().into(), minute: minute.into().into(), second: second.into().into(),
-        fraction: None, offset: offset};
+        fraction: None, offset};
       if time.validate() {
         return Ok(time);
       } else {
@@ -1443,7 +1450,7 @@ impl<'a> Display for DateTime<'a> {
 // <hour>:<minute>:<second>(.<fraction>)?
 impl<'a> DateTime<'a> {
   pub fn new(date: Date<'a>, time: Option<Time<'a>>) -> DateTime<'a> {
-    DateTime{date: date, time: time}
+    DateTime{date, time}
   }
 
   /// Validates a created `DateTime`.

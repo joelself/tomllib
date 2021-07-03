@@ -6,7 +6,6 @@ use std::borrow::Cow;
 use crate::internals::ast::structs::{KeyVal, WSSep, TOMLValue, ErrorCode, HashValue, TableType, Table, get_last_keys};
 use crate::types::{Date, Time, DateTime, TimeOffset, TimeOffsetAmount, ParseError, StrType, Children, Value};
 use crate::internals::parser::Parser;
-use nom;
 use nom::{IResult, InputLength};
 
 pub enum Key<'a> {
