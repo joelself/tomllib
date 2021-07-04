@@ -200,7 +200,6 @@ impl<'a> Parser<'a> {
 
   method!(table_subkeys<Parser<'a>, &'a str, Vec<WSKeySep> >, mut self, many0!(call_m!(self.table_subkey)));
 
-  #[allow(clippy::manual_strip)]
   method!(table_subkey<Parser<'a>, &'a str, WSKeySep>, mut self,
     chain!(
       ws1: call_m!(self.ws)         ~

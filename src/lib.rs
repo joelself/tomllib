@@ -74,6 +74,8 @@
 //! Documentation and examples for specific types, enumeration values, and functions can be found in the `TOMLParser`
 //! docs and the `types` module docs.
 
+#![allow(clippy::manual_strip)]
+
 #[macro_use]
 extern crate nom;
 extern crate regex;
