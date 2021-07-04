@@ -55,22 +55,19 @@ impl<'a> Parser<'a> {
       },
       _ => return (self, ParseResult::Failure(line_count, 0)),
     };
-    if self.leftover.len() > 0 {
-      let len = self.errors.borrow().len();
+    let len = self.errors.borrow().len();
+    if !self.leftover.is_empty() {
       if len > 0 {
         let errors = self.errors.clone();
         return (self, ParseResult::PartialError(leftover, line_count, 0, errors));
       } else {
         return (self, ParseResult::Partial(leftover, line_count, 0));
       }
+    } else if len > 0 {
+      let errors = self.errors.clone();
+      return (self, ParseResult::FullError(errors));
     } else {
-      let len = self.errors.borrow().len();
-      if len > 0 {
-        let errors = self.errors.clone();
-        return (self, ParseResult::FullError(errors));
-      } else {
-        return (self, ParseResult::Full);
-      }
+      (self, ParseResult::Full)
     }
   }
 
@@ -101,11 +98,7 @@ impl<'a> Parser<'a> {
     if self.map.contains_key(&s_key) {
       let hashval = self.map.get(&s_key).unwrap();
       let clone = hashval.clone();
-      if let Some(val) = clone.value {
-        Some(to_val!(&*val.borrow()))
-      } else {
-        None
-      }
+      clone.value.map(|val| to_val!(&*val.borrow()))
     } else {
       None
     }
@@ -114,14 +107,14 @@ impl<'a> Parser<'a> {
   pub fn get_children<S>(self: &Parser<'a>, key: S) -> Option<&Children> where S: Into<String> {
     let s_key = key.into();
     let k;
-    if s_key == "" {
+    if s_key.is_empty() {
       k = "$Root$".to_string();
     } else {
       k = s_key;
     }
     if self.map.contains_key(&k) {
       let hashval = self.map.get(&k).unwrap();
-      return Some(&hashval.subkeys);
+      Some(&hashval.subkeys)
     } else {
       None
     }
@@ -135,9 +128,9 @@ impl<'a> Parser<'a> {
         _ => return false,
       };
       let opt_value: &mut Option<Rc<RefCell<TOMLValue<'a>>>> = &mut tval.value;
-      let val_rf = match opt_value {
-        &mut Some(ref mut v) => v,
-        &mut None => return false,
+      let val_rf = match *opt_value {
+        Some(ref mut v) => v,
+        None => return false,
       };
       // if the inline table/array has the same structure the just replace the values
       if Parser::same_structure(val_rf, &val) {
@@ -170,14 +163,14 @@ impl<'a> Parser<'a> {
         _ => panic!("Map contains key, but map.entry returned a Vacant entry is set_value."),
       };
       let opt_value: &mut Option<Rc<RefCell<TOMLValue<'a>>>> = &mut existing_value.value;
-      let val_rf = match opt_value {
-        &mut Some(ref mut v) => v,
-        &mut None => panic!("existing_value's value is None, when this should've returned false earlier in the function."),
+      let val_rf = match *opt_value {
+        Some(ref mut v) => v,
+        None => panic!("existing_value's value is None, when this should've returned false earlier in the function."),
       };
       *val_rf.borrow_mut() = new_value;
     }
     let new_value_rc = Rc::new(RefCell::new(new_value_clone));
-    self.rebuild_vector(s_key.clone(), new_value_rc.clone(), true);
+    self.rebuild_vector(s_key, new_value_rc.clone(), true);
     true
   }
 
@@ -185,15 +178,13 @@ impl<'a> Parser<'a> {
     if !tval.validate() {
       return None;
     }
-     match tval {
-      &Value::Array(ref arr) => {
+     match *tval {
+      Value::Array(ref arr) => {
         let mut values = vec![];
         for i in 0..arr.len() {
           let subval = &arr[i];
           let value_opt = Parser::convert_vector(subval);
-          if value_opt.is_none() {
-            return None;
-          }
+          value_opt.as_ref()?;
           let value = value_opt.unwrap();
           let array_value;
           if i < arr.len() - 1 {
@@ -207,7 +198,7 @@ impl<'a> Parser<'a> {
           Array::new(values, vec![], vec![])
         ))));
       },
-      &Value::InlineTable(ref it) => {
+      Value::InlineTable(ref it) => {
         let mut key_values = vec![];
         for i in 0..it.len() {
           let subval = &it[i].1;
@@ -225,33 +216,33 @@ impl<'a> Parser<'a> {
           InlineTable::new(key_values, WSSep::new_str(" ", " "))
         ))));
       },
-      &Value::Integer(ref s) => {
+      Value::Integer(ref s) => {
         if tval.validate() {
           return Some(TOMLValue::Integer(s.clone()))
         } else {
-          return None;
+          None
         }
       },
-      &Value::Float(ref s) => {
+      Value::Float(ref s) => {
         if tval.validate() {
           return Some(TOMLValue::Float(s.clone()))
         } else {
-          return None;
+          None
         }
       },
-      &Value::Boolean(b) => return Some(TOMLValue::Boolean(b)),
-      &Value::DateTime(ref dt) => {
+      Value::Boolean(b) => return Some(TOMLValue::Boolean(b)),
+      Value::DateTime(ref dt) => {
         if tval.validate() {
           return Some(TOMLValue::DateTime(dt.clone()))
         } else {
-          return None;
+          None
         }
       },
-      &Value::String(ref s, st) => {
+      Value::String(ref s, st) => {
         if tval.validate() {
           return Some(TOMLValue::String(s.clone(), st))
         } else {
-          return None;
+          None
         }
       },
     }
@@ -273,7 +264,7 @@ impl<'a> Parser<'a> {
             return false;
           }
         }
-        return true;
+        true
       },
       (&TOMLValue::InlineTable(ref it), &Value::InlineTable(ref t_it)) => {
         let borrow = it.borrow();
@@ -287,13 +278,13 @@ impl<'a> Parser<'a> {
             return false;
           }
         }
-        return true;
+        true
       },
-      (&TOMLValue::Array(_), _)           => return false, // Array replaced with scalar
-      (&TOMLValue::InlineTable(_), _)     => return false, // InlineTable replaced with scalar
-      (_, &Value::Array(_))       => return false, // scalar replaced with an Array
-      (_, &Value::InlineTable(_)) => return false, // scalar replaced with an InlineTable
-      (_,_)                           => return true,  // scalar replaced with any other scalar
+      (&TOMLValue::Array(_), _)           => false, // Array replaced with scalar
+      (&TOMLValue::InlineTable(_), _)     => false, // InlineTable replaced with scalar
+      (_, &Value::Array(_))       => false, // scalar replaced with an Array
+      (_, &Value::InlineTable(_)) => false, // scalar replaced with an InlineTable
+      (_,_)                           => true,  // scalar replaced with any other scalar
     }
   }
 
@@ -336,9 +327,7 @@ impl<'a> Parser<'a> {
         }
       },
       _ => {
-        self.map.entry(key.clone()).or_insert(
-          HashValue::new_count(val.clone())
-        );
+        self.map.entry(key).or_insert_with(|| HashValue::new_count(val.clone()));
       },
     }
   }
@@ -348,15 +337,15 @@ impl<'a> Parser<'a> {
     let mut all_keys = vec![];
     if let Some(hv) = hv_opt {
       let children = &hv.subkeys;
-      match children {
-        &Children::Count(ref cell) => {
+      match *children {
+        Children::Count(ref cell) => {
           for i in 0..cell.get() {
             let subkey = format!("{}[{}]", key, i);
             all_keys.push(subkey.clone());
             all_keys.append(&mut self.get_all_subkeys(&subkey));
           }
         },
-        &Children::Keys(ref rc_hs) => {
+        Children::Keys(ref rc_hs) => {
           for childkey in rc_hs.borrow().iter(){
             let subkey = format!("{}.{}", key, childkey);
             all_keys.push(subkey.clone());
@@ -398,7 +387,7 @@ impl<'a> Parser<'a> {
       (v, tv)                             => panic!("Check for the same structure should have eliminated the possibility of replacing {} with {}", v, tv),
     };
     *val_rf.borrow_mut() = value;
-    return true;
+    true
   }
 
   pub fn sanitize_array(arr: Rc<RefCell<Array<'a>>>) -> Value<'a> {
@@ -414,7 +403,7 @@ impl<'a> Parser<'a> {
     for kv in it.borrow().keyvals.iter() {
       result.push((kv.keyval.key.clone(), to_val!(&*kv.keyval.val.borrow())));
     }
-    return Value::InlineTable(Rc::new(result));
+    Value::InlineTable(Rc::new(result))
   }
 }
 
