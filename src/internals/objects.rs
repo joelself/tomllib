@@ -50,24 +50,20 @@ impl<'a> Parser<'a> {
       false
     } else {
       let len = tables.borrow().len();
-      if let TableType::Standard(_) = *tables.borrow()[len - 1] {
-        true
-      } else {
-        false
-      }
+      matches!(*tables.borrow()[len - 1], TableType::Standard(_))
     }
   }
 
   fn equal_key_length(table: Rc<TableType<'a>>, tables: &RefCell<Vec<Rc<TableType<'a>>>>) -> bool {
     if tables.borrow().len() ==  0 {
-      return false;
+      false
     } else {
       match *table {
         TableType::Array(ref t1) | TableType::Standard(ref t1) => {
           let len = tables.borrow().len();
           match *tables.borrow()[len - 1] {
             TableType::Array(ref t2) | TableType::Standard(ref t2) => {
-              return t1.keys.len() == t2.keys.len();
+              t1.keys.len() == t2.keys.len()
             }
           }
         }
@@ -112,22 +108,22 @@ impl<'a> Parser<'a> {
               if let Entry::Occupied(mut o) = borrow.entry(last_key.clone()) {
                 if first {
 
-                  insert = match &o.get_mut().subkeys {
-                    &Children::Keys(ref vec_rf) => {debug!("Inserting subkey: {}", tb.keys[i].key); Parser::insert(vec_rf, tb.keys[i].key.clone().into_owned())},
-                    &Children::Count(ref cell) => { debug!("Incrementing subkey count: {}", cell.get() + 1); cell.set(cell.get() + 1); true },
+                  insert = match o.get_mut().subkeys {
+                    Children::Keys(ref vec_rf) => {debug!("Inserting subkey: {}", tb.keys[i].key); Parser::insert(vec_rf, tb.keys[i].key.clone().into_owned())},
+                    Children::Count(ref cell) => { debug!("Incrementing subkey count: {}", cell.get() + 1); cell.set(cell.get() + 1); true },
                   };
                   first = false;
                 } else {
                   debug!("Inserting subkey: {}", tb.keys[i].key);
-                  insert = match &o.get_mut().subkeys {
-                    &Children::Keys(ref vec_rf) => Parser::insert(vec_rf, tb.keys[i].key.clone().into_owned()),
+                  insert = match o.get_mut().subkeys {
+                    Children::Keys(ref vec_rf) => Parser::insert(vec_rf, tb.keys[i].key.clone().into_owned()),
                     _ => panic!("Implicit tables can only be Standard Tables: \"{}\"", format!("{}.{}", last_key, tb.keys[i].key)),
                   };
                 }
               }
               if i < tb.keys.len() - 1 {
                 if last_key != "$Root$" {
-                  last_key.push_str(".");
+                  last_key.push('.');
                 } else {
                   last_key.truncate(0);
                 }
@@ -156,6 +152,7 @@ impl<'a> Parser<'a> {
     debug!("Returning from add_implicit_tables");
   }
 
+  #[allow(clippy::match_ref_pats)]
   fn increment_array_table_index(map: &RefCell<&mut HashMap<String, HashValue<'a>>>,
     tables: &RefCell<Vec<Rc<TableType<'a>>>>, tables_index: &RefCell<Vec<usize>>,) {
     let parent_key = Parser::get_key_parent(tables, tables_index);
@@ -179,7 +176,7 @@ impl<'a> Parser<'a> {
     let mut borrow = map.borrow_mut();
     let entry = borrow.entry(parent_key);
     if let Entry::Occupied(mut o) = entry {
-      if let &Children::Keys(ref keys) = &o.get_mut().subkeys {
+      if let Children::Keys(ref keys) = o.get_mut().subkeys {
         let contains = Parser::contains(keys, key);
         if contains {
           debug!("key already exists");
@@ -190,7 +187,7 @@ impl<'a> Parser<'a> {
         }
       }
     }
-    return true;
+    true
   }
 
   // Table
@@ -203,6 +200,7 @@ impl<'a> Parser<'a> {
 
   method!(table_subkeys<Parser<'a>, &'a str, Vec<WSKeySep> >, mut self, many0!(call_m!(self.table_subkey)));
 
+  #[allow(clippy::manual_strip)]
   method!(table_subkey<Parser<'a>, &'a str, WSKeySep>, mut self,
     chain!(
       ws1: call_m!(self.ws)         ~
@@ -324,8 +322,8 @@ impl<'a> Parser<'a> {
               map.borrow_mut().insert(table_key.clone(), HashValue::table_keys());
             }
             if let Entry::Occupied(mut o) = map.borrow_mut().entry(parent_key) {
-              match &o.get_mut().subkeys {
-                &Children::Keys(ref vec_rf) => {Parser::insert(vec_rf, tbl.keys[keys_len - 1].key.clone().into_owned());},
+              match o.get_mut().subkeys {
+                Children::Keys(ref vec_rf) => {Parser::insert(vec_rf, tbl.keys[keys_len - 1].key.clone().into_owned());},
                 _ => panic!("Trying to add a key to an array: \"{}\"", table_key),
               }
             }
@@ -433,11 +431,10 @@ impl<'a> Parser<'a> {
             if !contains_key {
               debug!("Insert new array of table key: {}", full_key);
               map.borrow_mut().insert(parent_key, HashValue::one_count());
-              map.borrow_mut().insert(full_key, HashValue::none_keys());
             } else {
               debug!("Increment existing array of table key: {}", full_key);
-              map.borrow_mut().insert(full_key, HashValue::none_keys());
             }
+            map.borrow_mut().insert(full_key, HashValue::none_keys());
             self.last_table = Some(res.clone());
           }
         }
@@ -584,6 +581,7 @@ impl<'a> Parser<'a> {
       ws2: call_m!(self.ws)                                         ~
            tag_s!("}")                                ,
           ||{
+            #[allow(clippy::redundant_pattern_matching)]
             if let Some(_) = keyvals {
               Rc::new(RefCell::new(InlineTable::new(keyvals.unwrap(), WSSep::new_str(ws1, ws2))))
             } else {
