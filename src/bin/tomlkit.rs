@@ -201,11 +201,11 @@ impl Options {
     if matches.has_match("print-doc") {
       opts.print_doc = true;
     }
-    return opts;
+    opts
   }
 }
 
-fn process_document(file_path: &String, opts: &Options, matches: &Matches, vars: &Vars) {
+fn process_document(file_path: &str, opts: &Options, matches: &Matches, vars: &Vars) {
   let mut file: String = "".to_string();
 
   match get_file(file_path, &mut file)  {
@@ -254,63 +254,55 @@ fn process_document(file_path: &String, opts: &Options, matches: &Matches, vars:
       usage!(println!("Error \"{}\": A required argument is missing for g/get-value.", file_path), &vars);
     }
   }
-  if let Ok(_) = result[result.len() - 1] {
-    if matches.has_match("has-value") {
-      command = true;
-      if let Some(k) = matches.get("has-value") {
-        result.push(has_value(k, &opts.separator, &opts.true_vals, &opts.false_vals, &mut hasval_keycount, &parser));
-      } else {
-        usage!(println!("Error \"{}\": A required argument is missing for has-value.", file_path), &vars);
-      }
+  if result[result.len() - 1].is_ok() && matches.has_match("has-value") {
+    command = true;
+    if let Some(k) = matches.get("has-value") {
+      result.push(has_value(k, &opts.separator, &opts.true_vals, &opts.false_vals, &mut hasval_keycount, &parser));
+    } else {
+      usage!(println!("Error \"{}\": A required argument is missing for has-value.", file_path), &vars);
     }
   }
-  if let Ok(_) = result[result.len() - 1] {
-    if matches.has_match("get-children") {
-      command = true;
-      if let Some(k) = matches.get("get-children") {
-        result.push(get_children(k, &opts.separator, &opts.arr_start, &opts.arr_end, &opts.arr_sep, opts.arr_len,
-          &parser));
-      } else {
-        usage!(println!("Error \"{}\": A required argument is missing for c/get-children.", file_path), &vars);
-      }
+  if result[result.len() - 1].is_ok() && matches.has_match("get-children") {
+    command = true;
+    if let Some(k) = matches.get("get-children") {
+      result.push(get_children(k, &opts.separator, &opts.arr_start, &opts.arr_end, &opts.arr_sep, opts.arr_len,
+        &parser));
+    } else {
+      usage!(println!("Error \"{}\": A required argument is missing for c/get-children.", file_path), &vars);
     }
   }
-  if let Ok(_) = result[result.len() - 1] {
-    if matches.has_match("has-children") {
-      command = true;
-      if let Some(k) = matches.get("has-children") {
-        result.push(has_children(k, &opts.separator, &opts.true_vals, &opts.false_vals, &hasval_keycount, &parser));
-      } else {
-        usage!(println!("Error \"{}\": A required argument is missing for has-children.", file_path), &vars);
-      }
+  if result[result.len() - 1].is_ok() && matches.has_match("has-children") {
+    command = true;
+    if let Some(k) = matches.get("has-children") {
+      result.push(has_children(k, &opts.separator, &opts.true_vals, &opts.false_vals, &hasval_keycount, &parser));
+    } else {
+      usage!(println!("Error \"{}\": A required argument is missing for has-children.", file_path), &vars);
     }
   }
-  if let Ok(_) = result[result.len() - 1] {
-    if matches.has_match("set-value") {
-      command = true;
-      if let Some(kv) = matches.get("set-value") {
-        result.push(set_value(kv, &opts.separator, opts.quiet, &mut parser));
-        if matches.has_match("output-file") {
-          match matches.get("output-file") {
-            Some(out) => out_file = out,
-            None => {
-              usage!(println!("Error \"{}\": A required argument is missing for output-file.", file_path), &vars);
-            },
-          }
+  if result[result.len() - 1].is_ok() && matches.has_match("set-value") {
+    command = true;
+    if let Some(kv) = matches.get("set-value") {
+      result.push(set_value(kv, &opts.separator, opts.quiet, &mut parser));
+      if matches.has_match("output-file") {
+        match matches.get("output-file") {
+          Some(out) => out_file = out,
+          None => {
+            usage!(println!("Error \"{}\": A required argument is missing for output-file.", file_path), &vars);
+          },
         }
-        if let Ok(_) = result[result.len() - 1] {
-          // Write back out to the file
-          match write_to_file(out_file, &parser) {
-            Ok(()) => (),
-            Err(err) => {
-              println!("Error \"{}\": Unable to write to file: \"{}\". Reason: {}", file_path, out_file, err);
-              std::process::exit(-1);
-            },
-          }
-        }
-      } else {
-        usage!(println!("Error \"{}\": A required argument is missing for s/set-value.", file_path), &vars);
       }
+      if result[result.len() - 1].is_ok() {
+        // Write back out to the file
+        match write_to_file(out_file, &parser) {
+          Ok(()) => (),
+          Err(err) => {
+            println!("Error \"{}\": Unable to write to file: \"{}\". Reason: {}", file_path, out_file, err);
+            std::process::exit(-1);
+          },
+        }
+      }
+    } else {
+      usage!(println!("Error \"{}\": A required argument is missing for s/set-value.", file_path), &vars);
     }
   }
   if !command {
@@ -321,13 +313,13 @@ fn process_document(file_path: &String, opts: &Options, matches: &Matches, vars:
   // ************** Print output here! *******************
   let _ = result.remove(0);
   for i in 0..result.len() {
-    match &result[i]  {
-      &Ok(ref val) => {
+    match result[i]  {
+      Ok(ref val) => {
         if !opts.quiet {
           print!("{}", val);
         }
       },
-      &Err(ref err) => {
+      Err(ref err) => {
         print!("Error \"{}\": {}", file_path, err);
       }
     }
@@ -335,7 +327,7 @@ fn process_document(file_path: &String, opts: &Options, matches: &Matches, vars:
       print!("{}", opts.separator);
     }
     if i == result.len() - 1 {
-      println!("");
+      println!();
     }
   }
 
@@ -345,23 +337,23 @@ fn process_document(file_path: &String, opts: &Options, matches: &Matches, vars:
   }
 }
 
-fn write_to_file(file_path: &String, doc: &TOMLParser) -> Result<(), Error> {
+fn write_to_file(file_path: &str, doc: &TOMLParser) -> Result<(), Error> {
   let mut f = File::create(file_path)?;
   f.write_all(format!("{}",doc).as_bytes())?;
   f.sync_all()?;
   Ok(())
 }
 
-fn get_file(file_path: &String, out_file: &mut String) -> Result<(), Error> {
+fn get_file(file_path: &str, out_file: &mut String) -> Result<(), Error> {
   let mut f = File::open(file_path)?;
   f.read_to_string(out_file)?;
   Ok(())
 }
 
-fn get_value(csv: &str, sep: &String, strip_quotes: bool, doc: &TOMLParser) -> Result<String, String> {
+fn get_value(csv: &str, sep: &str, strip_quotes: bool, doc: &TOMLParser) -> Result<String, String> {
   let key_results = csv_to_vec(csv);
   if let Ok(keys) = key_results {
-    if keys.len() == 0 {
+    if keys.is_empty() {
       return Err(format!("No keys specified: \"{}\".", csv));
     }
     let mut result = String::new();
@@ -385,13 +377,13 @@ fn get_value(csv: &str, sep: &String, strip_quotes: bool, doc: &TOMLParser) -> R
   Err(format!("Could not parse keys: \"{:?}\".", csv))
 }
 
-fn has_value(csv: &str, sep: &String, true_vals: &String, false_vals: &String, keycount: &mut usize, doc: &TOMLParser)
+fn has_value(csv: &str, sep: &str, true_vals: &str, false_vals: &str, keycount: &mut usize, doc: &TOMLParser)
   -> Result<String, String> {
   let key_results = csv_to_vec(csv);
   let true_results = csv_to_vec(true_vals);
   let false_results = csv_to_vec(false_vals);
   if let Ok(keys) = key_results {
-    if keys.len() == 0 {
+    if keys.is_empty() {
       return Err(format!("No keys specified: \"{}\".", csv));
     }
     *keycount = keys.len();
@@ -417,7 +409,7 @@ fn has_value(csv: &str, sep: &String, true_vals: &String, false_vals: &String, k
         return Err(format!("Invalid set of false values specified: \"{}\".", false_vals));
       }
       let key: &str = &keys[i];
-      if let Some(_) = doc.get_value(key) {
+      if doc.get_value(key).is_some() {
         result.push_str(&true_val);
       } else {
         result.push_str(&false_val);
@@ -431,19 +423,19 @@ fn has_value(csv: &str, sep: &String, true_vals: &String, false_vals: &String, k
   Err(format!("Could not parse keys: \"{}\".", csv))
 }
 
-fn get_children(csv: &str, sep: &String, arr_start: &String, arr_end: &String, arr_sep: &String, arr_len: bool,
+fn get_children(csv: &str, sep: &str, arr_start: &str, arr_end: &str, arr_sep: &str, arr_len: bool,
   doc: &TOMLParser) -> Result<String, String> {
   let key_results = csv_to_vec(csv);
   if let Ok(keys) = key_results {
-    if keys.len() == 0 {
+    if keys.is_empty() {
       return Err(format!("No keys specified: \"{}\".", csv));
     }
     let mut result = String::new();
     for i in 0..keys.len() {
       let key: &str = &keys[i];
       if let Some(c) = doc.get_children(key) {
-        match c {
-          &Children::Keys(ref ckeys) => {
+        match *c {
+          Children::Keys(ref ckeys) => {
             let mut val = String::new();
             if arr_len {
               val.push_str(&format!("{}", ckeys.borrow().len()));
@@ -463,7 +455,7 @@ fn get_children(csv: &str, sep: &String, arr_start: &String, arr_end: &String, a
             }
             result.push_str(&val);
           },
-          &Children::Count(ref size) => {
+          Children::Count(ref size) => {
             if size.get() == 0 {
               return Err(format!("Key \"{}\" has no children.", key));
             }
@@ -482,13 +474,13 @@ fn get_children(csv: &str, sep: &String, arr_start: &String, arr_end: &String, a
   Err(format!("Could not parse keys: \"{}\".", csv))
 }
 
-fn has_children(csv: &str, sep: &String, true_vals: &String, false_vals: &String, keycount: &usize, doc: &TOMLParser)
+fn has_children(csv: &str, sep: &str, true_vals: &str, false_vals: &str, keycount: &usize, doc: &TOMLParser)
   -> Result<String, String> {
   let key_results = csv_to_vec(csv);
   let true_results = csv_to_vec(true_vals);
   let false_results = csv_to_vec(false_vals);
   if let Ok(keys) = key_results {
-    if keys.len() == 0 {
+    if keys.is_empty() {
       return Err(format!("No keys specified: \"{}\".", csv));
     }
     let mut result = String::new();
@@ -514,15 +506,15 @@ fn has_children(csv: &str, sep: &String, true_vals: &String, false_vals: &String
       }
       let key: &str = &keys[i];
       if let Some(children) = doc.get_children(key) {
-        match children {
-          &Children::Count(ref c) => {
+        match *children {
+          Children::Count(ref c) => {
             if c.get() > 0 {
               result.push_str(&true_val);
             } else {
               result.push_str(&false_val);
             }
           },
-          &Children::Keys(ref ckeys) => {
+          Children::Keys(ref ckeys) => {
             if ckeys.borrow().len() > 0 {
               result.push_str(&true_val);
             } else {
@@ -542,10 +534,11 @@ fn has_children(csv: &str, sep: &String, true_vals: &String, false_vals: &String
   Err(format!("Could not parse keys: \"{}\".", csv))
 }
 
-fn set_value<'a>(kvs: &str, sep: &String, quiet: bool, doc: &mut TOMLParser) -> Result<String, String> {
+#[allow(clippy::collapsible_match)]
+fn set_value(kvs: &str, sep: &str, quiet: bool, doc: &mut TOMLParser) -> Result<String, String> {
   let keyval_results = csv_to_vec(kvs);
   if let Ok(keyvals) = keyval_results {
-    if keyvals.len() % 3 != 0 || keyvals.len() == 0 {
+    if keyvals.len() % 3 != 0 || keyvals.is_empty() {
       return Err(format!("No keys or wrong number of keys specified (must be a multiple of 3): \"{}\".", kvs));
     }
     let mut result = String::new();
@@ -585,7 +578,7 @@ fn set_value<'a>(kvs: &str, sep: &String, quiet: bool, doc: &mut TOMLParser) -> 
                   fraction = frac.to_string().into();
                 }
                 if let Some(ref offset) = time.offset {
-                  if let &TimeOffset::Time(ref amount) = offset {
+                  if let TimeOffset::Time(ref amount) = *offset {
                     has_offset = true;
                     pos_neg = amount.pos_neg;
                     off_hour = amount.hour.to_string().into();
@@ -595,7 +588,7 @@ fn set_value<'a>(kvs: &str, sep: &String, quiet: bool, doc: &mut TOMLParser) -> 
               }
 
               let newoffset = if has_offset {
-                Some(TimeOffset::Time(TimeOffsetAmount{pos_neg: pos_neg, hour: off_hour, minute: off_minute}))
+                Some(TimeOffset::Time(TimeOffsetAmount{pos_neg, hour: off_hour, minute: off_minute}))
               } else {
                 None
               };
@@ -605,15 +598,15 @@ fn set_value<'a>(kvs: &str, sep: &String, quiet: bool, doc: &mut TOMLParser) -> 
                 None
               };
               let newtime = if has_time {
-                Some(Time{hour: hour, minute: minute, second: second, fraction: newfraction, offset: newoffset})
+                Some(Time{hour, minute, second, fraction: newfraction, offset: newoffset})
               } else {
                 None
               };
               new_dt = DateTime{
                 date: Date{
-                  year: year,
-                  month: month,
-                  day: day,
+                  year,
+                  month,
+                  day,
                 },
                 time: newtime,
               };
@@ -636,10 +629,8 @@ fn set_value<'a>(kvs: &str, sep: &String, quiet: bool, doc: &mut TOMLParser) -> 
       } else {
         return Err(format!("Unable to parse value: \"{}\" as type: \"{}\" for key: \"{}\"", val, typ, key));
       }
-      if !quiet {
-        if i * 3  < keyvals.len() - 3 {
-          result.push_str(sep);
-        }
+      if !quiet && i * 3  < keyvals.len() - 3 {
+        result.push_str(sep);
       }
     }
     return Ok(result);
@@ -647,7 +638,7 @@ fn set_value<'a>(kvs: &str, sep: &String, quiet: bool, doc: &mut TOMLParser) -> 
   Err(format!("Could not parse keys: \"{}\".", kvs))
 }
 
-fn csv_to_vec<'a>(csv: &str) -> Result<Vec<String>, csv::Error> {
+fn csv_to_vec(csv: &str) -> Result<Vec<String>, csv::Error> {
   let mut fields = vec![];
   let mut rdr = Reader::from_string(csv).has_headers(false).escape(Some(b'\\')).quote(b'\0');
   while !rdr.done() {
