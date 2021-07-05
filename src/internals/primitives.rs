@@ -290,23 +290,23 @@ impl<'a> Parser<'a> {
     let mut setvalue = false;
     let full_key: String;
     let mut parent_key: String;
-    match &self.last_table {
+    match self.last_table {
       // If the last table is None
       //  If the key exists
       //    If the value is empty insert the value
       //    If the value in non-empty add the key/val to the error list
       //  If the key doesn't exist, insert it
-      &None => {
+      None => {
         let tuple = Parser::get_keychain_key(&self.keychain);
         full_key = tuple.0;
         parent_key = tuple.1;
-        if parent_key == "" {
+        if parent_key.is_empty() {
           parent_key.push_str("$Root$");
         }
         let map_borrow = map.borrow();
         let hv_opt = map_borrow.get(&full_key);
         if let Some(hv) = hv_opt {
-          if let Some(_) = hv.value {
+          if hv.value.is_some() {
             error = true;
           } else {
             setvalue = true;
@@ -321,7 +321,7 @@ impl<'a> Parser<'a> {
       //    If the value is non-empty add the key/val pair to the error list
       //    If the key is for an ArrayOfTables add the key/val to the error list
       //  If the key doesn't exist add the key/value pair to the hash table
-      &Some(ref ttype) => {
+      Some(ref ttype) => {
         match **ttype {
           TableType::Standard(_) => {
             self.last_array_tables.borrow_mut().push(ttype.clone());
@@ -333,7 +333,7 @@ impl<'a> Parser<'a> {
             let map_borrow = map.borrow();
             let hv_opt = map_borrow.get(&full_key);
             if let Some(hv) = hv_opt {
-              if let Some(_) = hv.value {
+              if hv.value.is_some() {
                 error = true;
               } else {
                 setvalue = true;
@@ -350,7 +350,7 @@ impl<'a> Parser<'a> {
             let map_borrow = map.borrow();
             let hv_opt = map_borrow.get(&full_key);
             if let Some(hv) = hv_opt {
-              if let Some(_) = hv.value {
+              if hv.value.is_some() {
                 debug!("{} hash value exists in table.", full_key);
                 error = true;
               } else {
@@ -373,7 +373,7 @@ impl<'a> Parser<'a> {
       if setvalue {
         debug!("Set existing hash value. full_key: {}, parent_key: {}, val: {}", full_key, parent_key, *(*val).borrow());
         let mut borrow = map.borrow_mut();
-        let entry = borrow.entry(full_key.clone());
+        let entry = borrow.entry(full_key);
         match entry {
           Entry::Occupied(mut o) => {
             debug!("Children: {:?}", &o.get_mut().subkeys);
@@ -384,21 +384,21 @@ impl<'a> Parser<'a> {
       } else if insert {
         debug!("Insert full_key: {}, parent_key: {}, val: {}", full_key, parent_key, *(*val).borrow());
         match *val.borrow() {
-          TOMLValue::InlineTable(_) => map.borrow_mut().insert(full_key.clone(), HashValue::new_keys(val.clone())),
-          _                     => map.borrow_mut().insert(full_key.clone(), HashValue::new_count(val.clone())),
+          TOMLValue::InlineTable(_) => map.borrow_mut().insert(full_key, HashValue::new_keys(val.clone())),
+          _                     => map.borrow_mut().insert(full_key, HashValue::new_count(val.clone())),
         };
       }
 
       // in either case update the parent and possibly grandparent
       let mut borrow = map.borrow_mut();
       {
-        let entry = borrow.entry(parent_key.clone());
+        let entry = borrow.entry(parent_key);
         match entry {
           Entry::Occupied(mut o) => {
             debug!("Children: {:?}", &o.get_mut().subkeys);
-            match &o.get_mut().subkeys {
-              &Children::Count(ref c) => { debug!("parent inc to {}", c.get() + 1); c.set(c.get() + 1) },
-              &Children::Keys(ref vec_rf) => {
+            match o.get_mut().subkeys {
+              Children::Count(ref c) => { debug!("parent inc to {}", c.get() + 1); c.set(c.get() + 1) },
+              Children::Keys(ref vec_rf) => {
                 if let Key::Str(ref s) = self.keychain.borrow()[self.keychain.borrow().len() - 1] {
                   Parser::insert(vec_rf,s.clone().into_owned());
                 }
@@ -604,8 +604,7 @@ impl<'a> Parser<'a> {
      date: call_m!(self.date)             ~
      time: complete!(call_m!(self.time))?  ,
         ||{
-          let res = DateTime::new(date, time);
-          res
+          DateTime::new(date, time)
         }
     )
   );
@@ -662,9 +661,7 @@ impl<'a> Parser<'a> {
           }
           self.errors.borrow_mut().push(err);
         } else {
-          match *res.val.borrow() {
-            _ => self.insert_keyval_into_map(res.val.clone()),
-          }
+          self.insert_keyval_into_map(res.val.clone());
         }
         self.keychain.borrow_mut().pop();
         res
