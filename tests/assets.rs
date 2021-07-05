@@ -100,7 +100,7 @@ fn test_all_assets(valid: bool) {
       }
       panic_string.push_str(&s);
     }
-    assert!(false, panic_string);
+    assert!(false, "{}", panic_string);
   }
 }
 
