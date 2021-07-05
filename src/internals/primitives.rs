@@ -35,9 +35,9 @@ named!(all_lines<&str, Vec<&str> >, many0!(full_line));
 
 pub fn count_lines(s: &str) -> usize {
   let r = all_lines(s);
-  match &r {
-    &IResult::Done(_, ref o) => o.len() as usize,
-    _            => 0 as usize,
+  match r {
+    IResult::Done(_, ref o) => o.len() as usize,
+    _            => 0_usize,
   }
 }
 
@@ -49,8 +49,8 @@ impl<'a> Parser<'a> {
     let tables_len = tables_index.borrow().len();
     let mut prev_end = 0;
     for i in 0..tables_len {
-      if let &TableType::Array(ref t) = &*tables.borrow()[i] {
-        if key_parent.len() > 0 {
+      if let TableType::Array(ref t) = *tables.borrow()[i] {
+        if !key_parent.is_empty() {
           key_parent.push('.');
         }
         let keys = get_last_keys(last_table, t);
@@ -85,8 +85,8 @@ impl<'a> Parser<'a> {
     let mut valid = true;
     let mut parent_key = "$Root$".to_string();
     for i in 0..tables_len {
-      match  &*tables.borrow()[i] {
-        &TableType::Array(ref t) => {
+      match  *tables.borrow()[i] {
+        TableType::Array(ref t) => {
           debug!("Array Table: {}", t);
           let keys = get_last_keys(last_table, t);
           let len = keys.len();
@@ -141,7 +141,7 @@ impl<'a> Parser<'a> {
                 },
               }
             }
-            if let Some(_) = hash_value.value {
+            if hash_value.value.is_some() {
               debug!("Key \"{}\" has a value.", full_key);
               valid = false;
             } else if let Children::Keys(_) = hash_value.subkeys {
@@ -168,7 +168,7 @@ impl<'a> Parser<'a> {
             full_key.push_str(&format!("[{}]", index));
           }
         },
-        &TableType::Standard(ref t) => {
+        TableType::Standard(ref t) => {
           // Standard tables can't be nested so this has to be the last table in the vector
           let keys = get_last_keys(last_table, t);
           debug!("get_last_keys {:?}, prev_end: {}", keys, prev_end);
@@ -207,7 +207,7 @@ impl<'a> Parser<'a> {
         }
       }
     }
-    return false;
+    false
   }
 
   pub fn key_has_children_with_values(key: &str, map: &RefCell<&mut HashMap<String, HashValue<'a>>>) -> bool {
@@ -235,7 +235,7 @@ impl<'a> Parser<'a> {
         },
       }
     }
-    return false;
+    false
   }
 
   fn get_keychain_key(keychain: &RefCell<Vec<Key<'a>>>) -> (String, String) {
@@ -243,20 +243,20 @@ impl<'a> Parser<'a> {
     let mut key = String::new();
     let mut parent_key = String::new();
     for i in 0..len {
-      match &keychain.borrow()[i] {
-        &Key::Str(ref str_str) => {
-          if key.len() > 0 {
+      match keychain.borrow()[i] {
+        Key::Str(ref str_str) => {
+          if !key.is_empty() {
             key.push('.');
           }
           key.push_str(str_str)
         },
-        &Key::Index(ref i) => key.push_str(&format!("[{}]", i.get())),
+        Key::Index(ref i) => key.push_str(&format!("[{}]", i.get())),
       }
       if len > 1 && i == len - 2 {
         parent_key = key.clone();
       }
     }
-    return (key, parent_key);
+    (key, parent_key)
   }
 
   pub fn get_full_key(map: &RefCell<&mut HashMap<String, HashValue<'a>>>,
@@ -268,18 +268,18 @@ impl<'a> Parser<'a> {
     debug!("array_key: {}, chain_key: {}, parent_chain_key: {}", array_key, chain_key, parent_chain_key);
     let mut full_key = String::new();
     let mut parent_key = String::new();
-    if array_key.len() > 0 {
+    if !array_key.is_empty() {
       full_key.push_str(&array_key);
-      full_key.push_str(".");
+      full_key.push('.');
       parent_key.push_str(&array_key);
-      if parent_chain_key.len() > 0 {
-        parent_key.push_str(".");
+      if !parent_chain_key.is_empty() {
+        parent_key.push('.');
       }
     }
     full_key.push_str(&chain_key);
     parent_key.push_str(&parent_chain_key);
     debug!("valid: {}, full_key: {}, parent_key: {}", valid, full_key, parent_key);
-    return (valid, full_key, parent_key);
+    (valid, full_key, parent_key)
   }
 
   pub fn insert_keyval_into_map(&mut self, val: Rc<RefCell<TOMLValue<'a>>>) {
