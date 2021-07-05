@@ -30,6 +30,7 @@ pub enum ParseResult<'a> {
 }
 
 /// Represents a non-failure error encountered while parsing a TOML document.
+#[allow(clippy::large_enum_variant)]
 #[derive(Debug, Eq, PartialEq, Clone)]
 pub enum ParseError<'a> {
   /// An `Array` containing different types was encountered. Contains the `String` key that points to the `Array` and
@@ -86,6 +87,7 @@ pub enum ParseError<'a> {
 }
 
 // Represents the 7 different types of values that can exist in a TOML document.
+#[allow(clippy::large_enum_variant)]
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum Value<'a> {
   /// An integer value. Contains a `Cow<str>` representing the integer since integers can contain underscores.
@@ -186,14 +188,14 @@ impl Children {
     let mut full_key;
     let base = base_key.into();
     let child = child_key.into();
-    if base != "" {
-      full_key = base.clone();
+    if !base.is_empty() {
+      full_key = base;
       full_key.push('.');
       full_key.push_str(&child);
     } else {
-      full_key = child.clone();
+      full_key = child;
     }
-    return full_key;
+    full_key
   }
 
   /// Combines string type `base_key` with an integer type `child_key` to form a full key.
@@ -243,15 +245,15 @@ impl Children {
   pub fn combine_child_keys<S>(&self, base_key: S) -> Vec<String> where S: Into<String> {
     let mut all_keys = vec![];
     let base = base_key.into();
-    match self {
-      &Children::Count(ref c) => {
+    match *self {
+      Children::Count(ref c) => {
         for i in 0..c.get() {
           all_keys.push(format!("{}[{}]", base, i));
         }
       },
-      &Children::Keys(ref hs_rc) => {
+      Children::Keys(ref hs_rc) => {
         for subkey in hs_rc.borrow().iter() {
-          if base != "" {
+          if !base.is_empty() {
             let mut full_key = base.clone();
             full_key.push('.');
             full_key.push_str(&subkey);
@@ -262,7 +264,7 @@ impl Children {
         }
       },
     }
-    return all_keys;
+    all_keys
   }
 }
 
@@ -288,11 +290,11 @@ impl<'a> Display for Value<'a> {
         write!(f, "]")
       },
       &Value::String(ref s, ref t) => {
-        match t {
-          &StrType::Basic => write!(f, "\"{}\"", s),
-          &StrType::MLBasic => write!(f, "\"\"\"{}\"\"\"", s),
-          &StrType::Literal => write!(f, "'{}'", s),
-          &StrType::MLLiteral =>  write!(f, "'''{}'''", s),
+        match *t {
+          StrType::Basic => write!(f, "\"{}\"", s),
+          StrType::MLBasic => write!(f, "\"\"\"{}\"\"\"", s),
+          StrType::Literal => write!(f, "'{}'", s),
+          StrType::MLLiteral =>  write!(f, "'''{}'''", s),
         }
       },
       &Value::InlineTable(ref it) => {
@@ -338,7 +340,7 @@ impl<'a> Value<'a> {
   pub fn int_from_str<S>(int: S) -> Result<Value<'a>, TOMLError> where S: Into<String> + Clone {
     let result = Value::Integer(int.clone().into().into());
     if result.validate() {
-      return Result::Ok(result);
+      Result::Ok(result)
     } else {
       return Result::Err(TOMLError::new(format!("Error parsing int. Argument: {}", int.into())));
     }
@@ -372,9 +374,9 @@ impl<'a> Value<'a> {
   pub fn float_from_str<S>(float: S) -> Result<Value<'a>, TOMLError> where S: Into<String> + Clone {
     let result = Value::Float(float.clone().into().into());
     if result.validate() {
-      return Result::Ok(result);
+      Result::Ok(result)
     } else {
-      return Result::Err(TOMLError::new(format!("Error parsing float. Argument: {}", float.into())));
+      Result::Err(TOMLError::new(format!("Error parsing float. Argument: {}", float.into())))
     }
   }
 
@@ -439,7 +441,7 @@ impl<'a> Value<'a> {
   ///   Value::date_from_str("2011", "05", "11").unwrap());
   /// ```
   pub fn date_from_str<S>(year: S, month: S, day: S) -> Result<Value<'a>, TOMLError> where S: Into<String> + Clone {
-    match Date::from_str(year.clone().into(), month.clone().into(), day.clone().into()) {
+    match Date::from_str(year.into(), month.into(), day.into()) {
       Ok(date) => {
         Ok(Value::DateTime(DateTime::new(date, None)))
       },
@@ -491,9 +493,9 @@ impl<'a> Value<'a> {
   ///   Value::datetime_from_str("2011", "05", "11", "02", "03", "04").unwrap());
   /// ```
   pub fn datetime_from_str<S>(year: S, month: S, day: S, hour: S, minute: S, second: S) -> Result<Value<'a>, TOMLError> where S: Into<String> + Clone {
-    match Date::from_str(year.clone().into(), month.clone().into(), day.clone().into()) {
+    match Date::from_str(year.into(), month.into(), day.into()) {
       Ok(date) => {
-        match Time::from_str(hour.clone().into(), minute.clone().into(), second.clone().into(), None, None) {
+        match Time::from_str(hour.into(), minute.into(), second.into(), None, None) {
           Ok(time) => Ok(Value::DateTime(DateTime::new(date, Some(time)))),
           Err(error) => Err(error),
         }
@@ -549,9 +551,9 @@ impl<'a> Value<'a> {
   ///   Value::datetime_frac_from_str("2011", "05", "11", "02", "03", "04", "0043").unwrap());
   /// ```
   pub fn datetime_frac_from_str<S>(year: S, month: S, day: S, hour: S, minute: S, second: S, frac: S) -> Result<Value<'a>, TOMLError> where S: Into<String> + Clone{
-    match Date::from_str(year.clone().into(), month.clone().into(), day.clone().into()) {
+    match Date::from_str(year.into(), month.into(), day.into()) {
       Ok(date) => {
-        match Time::from_str(hour.clone().into(), minute.clone().into(), second.clone().into(), Some(frac.clone().into()), None) {
+        match Time::from_str(hour.into(), minute.into(), second.into(), Some(frac.into()), None) {
           Ok(time) => Ok(Value::DateTime(DateTime::new(date, Some(time)))),
           Err(error) => Err(error),
         }
@@ -618,11 +620,11 @@ impl<'a> Value<'a> {
   ///   Value::datetime_offset_from_str("2011", "05", "11", "02", "03", "04", "+", "09", "30").unwrap());
   /// ```
   pub fn datetime_offset_from_str<S>(year: S, month: S, day: S, hour: S, minute: S, second: S, posneg: S, off_hour: S, off_minute: S) -> Result<Value<'a>, TOMLError> where S: Into<String> + Clone{
-    match Date::from_str(year.clone().into(), month.clone().into(), day.clone().into()) {
+    match Date::from_str(year.into(), month.into(), day.into()) {
       Ok(date) => {
-        match TimeOffsetAmount::from_str(posneg.clone().into(), off_hour.clone().into(), off_minute.clone().into()) {
+        match TimeOffsetAmount::from_str(posneg.into(), off_hour.into(), off_minute.into()) {
           Ok(offset) => {
-            match Time::from_str(hour.clone().into(), minute.clone().into(), second.clone().into(), None, Some(
+            match Time::from_str(hour.into(), minute.into(), second.into(), None, Some(
                     TimeOffset::Time(offset)
                   )) {
               Ok(time) => Ok(Value::DateTime(DateTime::new(date, Some(time)))),
@@ -680,9 +682,9 @@ impl<'a> Value<'a> {
   ///   Value::datetime_zulu_from_str("2011", "05", "11", "02", "03", "04").unwrap());
   /// ```
   pub fn datetime_zulu_from_str<S>(year: S, month: S, day: S, hour: S, minute: S, second: S) -> Result<Value<'a>, TOMLError> where S: Into<String> + Clone {
-    match Date::from_str(year.clone().into(), month.clone().into(), day.clone().into()) {
+    match Date::from_str(year.into(), month.into(), day.into()) {
       Ok(date) => {
-        match Time::from_str(hour.clone().into(), minute.clone().into(), second.clone().into(), None, Some(
+        match Time::from_str(hour.into(), minute.into(), second.into(), None, Some(
                 TimeOffset::Zulu
               )) {
           Ok(time) => Ok(Value::DateTime(DateTime::new(date, Some(time)))),
@@ -740,9 +742,9 @@ impl<'a> Value<'a> {
   ///   Value::datetime_zulu_from_str("2011", "05", "11", "02", "03", "04").unwrap());
   /// ```
   pub fn datetime_full_zulu_from_str<S>(year: S, month: S, day: S, hour: S, minute: S, second: S, frac: S) -> Result<Value<'a>, TOMLError> where S: Into<String> + Clone {
-    match Date::from_str(year.clone().into(), month.clone().into(), day.clone().into()) {
+    match Date::from_str(year.into(), month.into(), day.into()) {
       Ok(date) => {
-        match Time::from_str(hour.clone().into(), minute.clone().into(), second.clone().into(), Some(frac.clone().into()), Some(
+        match Time::from_str(hour.into(), minute.into(), second.into(), Some(frac.into()), Some(
             TimeOffset::Zulu
           )) {
           Ok(time) => Ok(Value::DateTime(DateTime::new(date, Some(time)))),
@@ -814,11 +816,11 @@ impl<'a> Value<'a> {
   ///   Value::datetime_full_from_str("2011", "05", "11", "02", "03", "04", "0864","+", "09", "30").unwrap());
   /// ```
   pub fn datetime_full_from_str<S>(year: S, month: S, day: S, hour: S, minute: S, second: S, frac: S, posneg: S, off_hour: S, off_minute: S) -> Result<Value<'a>, TOMLError> where S: Into<String> + Clone {
-    match Date::from_str(year.clone().into(), month.clone().into(), day.clone().into()) {
+    match Date::from_str(year.into(), month.into(), day.into()) {
       Ok(date) => {
-        match TimeOffsetAmount::from_str(posneg.clone().into(), off_hour.clone().into(), off_minute.clone().into()) {
+        match TimeOffsetAmount::from_str(posneg.into(), off_hour.into(), off_minute.into()) {
           Ok(offset) => {
-            match  Time::from_str(hour.clone().into(), minute.clone().into(), second.clone().into(), Some(frac.clone().into()), Some(
+            match  Time::from_str(hour.into(), minute.into(), second.into(), Some(frac.into()), Some(
                 TimeOffset::Time(offset)
               )) {
               Ok(time) => Ok(Value::DateTime(DateTime::new(date, Some(time)))),
@@ -851,10 +853,10 @@ impl<'a> Value<'a> {
     match p.date_time(datetime) {
       (_, IResult::Done(i, o)) => {
         let result = Value::DateTime(o);
-        if i.len() > 0 || !result.validate() {
-          return Result::Err(TOMLError::new(format!("Error parsing string as datetime. Argument: {}", datetime)));
+        if !i.is_empty() || !result.validate() {
+          Result::Err(TOMLError::new(format!("Error parsing string as datetime. Argument: {}", datetime)))
         } else {
-          return Result::Ok(result);
+          Result::Ok(result)
         }
       },
       (_,_) => return Result::Err(TOMLError::new(format!("Error parsing string as datetime. Argument: {}", datetime))),
@@ -874,9 +876,9 @@ impl<'a> Value<'a> {
   pub fn basic_string<S>(s: S) -> Result<Value<'a>, TOMLError> where S: Into<String> + Clone {
     let result = Value::String(s.clone().into().into(), StrType::Basic);
     if result.validate() {
-      return Result::Ok(result);
+      Result::Ok(result)
     } else {
-      return Result::Err(TOMLError::new(format!("Error parsing string as basic_string. Argument: {}", s.into())));
+      Result::Err(TOMLError::new(format!("Error parsing string as basic_string. Argument: {}", s.into())))
     }
   }
 
@@ -893,9 +895,9 @@ impl<'a> Value<'a> {
   pub fn ml_basic_string<S>(s: S) -> Result<Value<'a>, TOMLError> where S: Into<String> + Clone {
     let result = Value::String(s.clone().into().into(), StrType::MLBasic);
     if result.validate() {
-      return Result::Ok(result);
+      Result::Ok(result)
     } else {
-      return Result::Err(TOMLError::new(format!("Error parsing string as ml_basic_string. Argument: {}", s.into())));
+      Result::Err(TOMLError::new(format!("Error parsing string as ml_basic_string. Argument: {}", s.into())))
     }
   }
 
@@ -912,9 +914,9 @@ impl<'a> Value<'a> {
   pub fn literal_string<S>(s: S) -> Result<Value<'a>, TOMLError> where S: Into<String> + Clone {
     let result = Value::String(s.clone().into().into(), StrType::Literal);
     if result.validate() {
-      return Result::Ok(result);
+      Result::Ok(result)
     } else {
-      return Result::Err(TOMLError::new(format!("Error parsing string as literal_string. Argument: {}", s.into())));
+      Result::Err(TOMLError::new(format!("Error parsing string as literal_string. Argument: {}", s.into())))
     }
   }
 
@@ -932,9 +934,9 @@ impl<'a> Value<'a> {
   pub fn ml_literal_string<S>(s: S) -> Result<Value<'a>, TOMLError> where S: Into<String> + Clone {
     let result = Value::String(s.clone().into().into(), StrType::MLLiteral);
     if result.validate() {
-      return Result::Ok(result);
+      Result::Ok(result)
     } else {
-      return Result::Err(TOMLError::new(format!("Error parsing string as ml_literal_string. Argument: {}", s.into())));
+      Result::Err(TOMLError::new(format!("Error parsing string as ml_literal_string. Argument: {}", s.into())))
     }
   }
 
@@ -950,45 +952,45 @@ impl<'a> Value<'a> {
   /// assert!(Value::Float("7.62".into()).validate());
   /// ```
   pub fn validate(&self) -> bool{
-    match self {
-      &Value::Integer(ref s) => {
+    match *self {
+      Value::Integer(ref s) => {
         let p = Parser::new();
         match p.integer(s) {
            (_, IResult::Done(_, _)) => true,
            (_,_) => false,
         }
       },
-      &Value::Float(ref s) => {
+      Value::Float(ref s) => {
         let p = Parser::new();
         match p.float(s) {
            (_, IResult::Done(_, _)) => true,
            (_,_) => false,
         }
       },
-      &Value::DateTime(ref dt) => {dt.validate()},
-      &Value::String(ref s, st) => {
+      Value::DateTime(ref dt) => {dt.validate()},
+      Value::String(ref s, st) => {
         match st {
           StrType::Basic => {
             match Parser::quoteless_basic_string(s) {
-              IResult::Done(i,_) => i.len() == 0,
+              IResult::Done(i,_) => i.is_empty(),
               _ => false,
             }
           },
           StrType::MLBasic => {
             match Parser::quoteless_ml_basic_string(s) {
-              IResult::Done(i,_) => i.len() == 0,
+              IResult::Done(i,_) => i.is_empty(),
               _ => false,
             }
           },
           StrType::Literal => {
             match Parser::quoteless_literal_string(s) {
-              IResult::Done(i,_) => i.len() == 0,
+              IResult::Done(i,_) => i.is_empty(),
               _ => false,
             }
           },
           StrType::MLLiteral => {
             match Parser::quoteless_ml_literal_string(s) {
-              IResult::Done(i,_) => i.len() == 0,
+              IResult::Done(i,_) => i.is_empty(),
               _ => false,
             }
           },
@@ -1054,9 +1056,9 @@ pub enum PosNeg {
 
 impl Display for PosNeg {
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-    match self {
-      &PosNeg::Pos => write!(f, "+"),
-      &PosNeg::Neg => write!(f, "-"),
+    match *self {
+      PosNeg::Pos => write!(f, "+"),
+      PosNeg::Neg => write!(f, "-"),
     }
 
   }
@@ -1084,18 +1086,18 @@ impl<'a> PartialEq for TimeOffset<'a> {
 
 impl<'a> Display for TimeOffset<'a> {
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-    match self {
-      &TimeOffset::Zulu => write!(f, "Z"),
-      &TimeOffset::Time(ref t) => write!(f, "{}", t),
+    match *self {
+      TimeOffset::Zulu => write!(f, "Z"),
+      TimeOffset::Time(ref t) => write!(f, "{}", t),
     }
   }
 }
 
 impl<'a> TimeOffset<'a> {
   pub fn validate(&self) -> bool {
-    match self {
-      &TimeOffset::Zulu => return true,
-      &TimeOffset::Time(ref amount) => return amount.validate(),
+    match *self {
+      TimeOffset::Zulu => true,
+      TimeOffset::Time(ref amount) => amount.validate(),
     }
   }
 }
@@ -1143,9 +1145,9 @@ impl<'a> TimeOffsetAmount<'a> {
     };
     let offset = TimeOffsetAmount{pos_neg: pn, hour: hour.into().into(), minute: minute.into().into()};
     if offset.validate() {
-      return Result::Ok(offset);
+      Result::Ok(offset)
     } else {
-      return Result::Err(TOMLError::new("Error validating TimeOffsetAmount.".to_string()));
+      Result::Err(TOMLError::new("Error validating TimeOffsetAmount.".to_string()))
     }
   }
 
@@ -1165,7 +1167,7 @@ impl<'a> TimeOffsetAmount<'a> {
     if self.hour.len() != 2 || self.minute.len() != 2 {
       return false;
     }
-    return self.validate_numbers();
+    self.validate_numbers()
    }
 
   fn validate_numbers(&self) -> bool {
@@ -1183,7 +1185,7 @@ impl<'a> TimeOffsetAmount<'a> {
     } else {
       return false;
     }
-    return true;
+    true
   }
 }
 
@@ -1249,7 +1251,7 @@ impl<'a> Date<'a> {
     if self.year.len() != 4 || self.month.len() != 2 || self.day.len() != 2 {
       return false;
     }
-    return self.validate_numbers();
+    self.validate_numbers()
   }
 
   fn validate_numbers(&self) -> bool {
@@ -1258,7 +1260,7 @@ impl<'a> Date<'a> {
         return false;
       }
       if let Ok(m) = usize::from_str(&self.month) {
-        if m < 1 || m > 12 {
+        if !(1..=12).contains(&m) {
           return false;
         }
         if let Ok(d) = usize::from_str(&self.day) {
@@ -1296,7 +1298,7 @@ impl<'a> Date<'a> {
     } else {
       return false;
     }
-    return true;
+    true
   }
 }
 
@@ -1352,17 +1354,17 @@ impl<'a> Time<'a> {
       let time = Time{hour: hour.into().into(), minute: minute.into().into(), second: second.into().into(),
         fraction: Some(s.into().into()), offset};
       if time.validate() {
-        return Ok(time);
+        Ok(time)
       } else {
-        return Err(TOMLError::new("Error validating Time.".to_string()));
+        Err(TOMLError::new("Error validating Time.".to_string()))
       }
     } else {
       let time = Time{hour: hour.into().into(), minute: minute.into().into(), second: second.into().into(),
         fraction: None, offset};
       if time.validate() {
-        return Ok(time);
+        Ok(time)
       } else {
-        return Err(TOMLError::new("Error validating Time.".to_string()));
+        Err(TOMLError::new("Error validating Time.".to_string()))
       }
     }
   }
@@ -1385,7 +1387,7 @@ impl<'a> Time<'a> {
     if self.hour.len() != 2 || self.minute.len() != 2 || self.second.len() != 2 {
       return false;
     }
-    return self.validate_numbers();
+    self.validate_numbers()
   }
 
   fn validate_numbers(&self) -> bool {
@@ -1420,7 +1422,7 @@ impl<'a> Time<'a> {
         return false;
       }
     }
-    return true;
+    true
   }
 }
 
@@ -1440,9 +1442,9 @@ impl<'a> PartialEq for DateTime<'a> {
 
 impl<'a> Display for DateTime<'a> {
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-    match &self.time {
-      &Some(ref time) => write!(f, "{}{}", self.date, time),
-      &None => write!(f, "{}", self.date),
+    match self.time {
+      Some(ref time) => write!(f, "{}{}", self.date, time),
+      None => write!(f, "{}", self.date),
     }
   }
 }
@@ -1473,7 +1475,7 @@ impl<'a> DateTime<'a> {
     } else {
       return false;
     }
-    return true;
+    true
   }
 }
 

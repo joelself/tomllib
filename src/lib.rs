@@ -75,6 +75,7 @@
 //! docs and the `types` module docs.
 
 #![allow(clippy::manual_strip)]
+#![allow(clippy::too_many_arguments)]
 
 #[macro_use]
 extern crate nom;
@@ -214,6 +215,12 @@ impl<'a> TOMLParser<'a> {
   /// ```
   pub fn get_children<S>(self: &TOMLParser<'a>, key: S) -> Option<&Children> where S: Into<String> {
     self.parser.get_children(key)
+  }
+}
+
+impl<'a> Default for TOMLParser<'a> {
+  fn default() -> Self {
+    Self::new()
   }
 }
 
