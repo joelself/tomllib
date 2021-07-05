@@ -152,6 +152,7 @@ impl<'a> Parser<'a> {
     debug!("Returning from add_implicit_tables");
   }
 
+  #[allow(clippy::match_ref_pats)]
   fn increment_array_table_index(map: &RefCell<&mut HashMap<String, HashValue<'a>>>,
     tables: &RefCell<Vec<Rc<TableType<'a>>>>, tables_index: &RefCell<Vec<usize>>,) {
     let parent_key = Parser::get_key_parent(tables, tables_index);

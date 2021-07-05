@@ -15,7 +15,7 @@ pub enum Key<'a> {
 
 impl<'a> Key<'a> {
   pub fn inc(&mut self) {
-    if let &mut Key::Index(ref mut i) = self {
+    if let Key::Index(ref mut i) = *self {
       i.set(i.get() + 1);
     }
   }
@@ -24,9 +24,9 @@ impl<'a> Key<'a> {
 #[inline(always)]
 fn is_keychar(chr: char) -> bool {
   let uchr = chr as u32;
-  uchr >= 0x41 && uchr <= 0x5A || // A-Z
-  uchr >= 0x61 && uchr <= 0x7A || // a-z
-  uchr >= 0x30 && uchr <= 0x39 || // 0-9
+  (0x41..=0x5A).contains(&uchr) || // A-Z
+  (0x61..=0x7A).contains(&uchr) || // a-z
+  (0x30..=0x39).contains(&uchr) || // 0-9
   uchr == 0x2D || uchr == 0x5f    // "-", "_"
 }
 
