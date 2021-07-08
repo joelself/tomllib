@@ -665,13 +665,13 @@ impl<'a> PartialEq for Array<'a> {
 impl<'a> Display for Array<'a> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
       write!(f, "[")?;
-      for comment_nl in self.comment_nls1.iter() {
+      for comment_nl in &self.comment_nls1 {
         write!(f, "{}", comment_nl)?;
       }
-      for val in self.values.iter() {
+      for val in &self.values {
         write!(f, "{}", val)?;
       }
-      for comment_nl in self.comment_nls2.iter() {
+      for comment_nl in &self.comment_nls2 {
         write!(f, "{}", comment_nl)?;
       }
       write!(f, "]")

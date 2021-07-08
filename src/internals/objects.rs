@@ -10,7 +10,6 @@ use std::rc::Rc;
 use std::cell::Cell;
 use nom::IResult;
 
-#[inline(always)]
 fn map_val_to_array_type(val: &TOMLValue) -> ArrayType {
   match *val {
     TOMLValue::Integer(_)        => ArrayType::Integer,

@@ -72,10 +72,10 @@ impl<'a> Parser<'a> {
   #[allow(dead_code)]
   fn print_keys_and_values_debug(self: &Parser<'a>) {
     let mut btree = BTreeMap::new();
-    for (k, v) in self.map.iter() {
+    for (k, v) in &self.map {
       btree.insert(k, v);
     }
-    for (k, v) in btree.iter() {
+    for (k, v) in &btree {
       debug!("key: {} - {}", k, v);
     }
   }
@@ -83,10 +83,10 @@ impl<'a> Parser<'a> {
   #[allow(dead_code)]
   fn print_keys_and_values(self: &Parser<'a>) {
     let mut btree = BTreeMap::new();
-    for (k, v) in self.map.iter() {
+    for (k, v) in &self.map {
       btree.insert(k, v);
     }
-    for (k, v) in btree.iter() {
+    for (k, v) in &btree {
       println!("key: {} - {}", k, v);
     }
   }
@@ -138,7 +138,7 @@ impl<'a> Parser<'a> {
     // if the inline table/array has a different structure, delete the existing
     // array/inline table from the map and rebuild it from the new value
     let all_keys = self.get_all_subkeys(&s_key);
-    for key in all_keys.iter() {
+    for key in &all_keys {
       self.map.remove(key);
     }
     let new_value_opt = Parser::convert_vector(&val);
@@ -386,7 +386,7 @@ impl<'a> Parser<'a> {
 
   pub fn sanitize_array(arr: Rc<RefCell<Array<'a>>>) -> Value<'a> {
     let mut result: Vec<Value> = vec![];
-    for av in arr.borrow().values.iter() {
+    for av in &arr.borrow().values {
       result.push(to_val!(&*av.val.borrow()));
     }
     Value::Array(Rc::new(result))
@@ -394,7 +394,7 @@ impl<'a> Parser<'a> {
 
   pub fn sanitize_inline_table(it: Rc<RefCell<InlineTable<'a>>>) -> Value<'a> {
     let mut result: Vec<(Cow<'a, str>, Value)> = vec![];
-    for kv in it.borrow().keyvals.iter() {
+    for kv in &it.borrow().keyvals {
       result.push((kv.keyval.key.clone(), to_val!(&*kv.keyval.val.borrow())));
     }
     Value::InlineTable(Rc::new(result))
