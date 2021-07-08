@@ -188,12 +188,12 @@ impl Children {
     let mut full_key;
     let base = base_key.into();
     let child = child_key.into();
-    if !base.is_empty() {
+    if base.is_empty() {
+      full_key = child;
+    } else {
       full_key = base;
       full_key.push('.');
       full_key.push_str(&child);
-    } else {
-      full_key = child;
     }
     full_key
   }
@@ -253,13 +253,13 @@ impl Children {
       },
       Children::Keys(ref hs_rc) => {
         for subkey in hs_rc.borrow().iter() {
-          if !base.is_empty() {
+          if base.is_empty() {
+            all_keys.push(subkey.clone());
+          } else {
             let mut full_key = base.clone();
             full_key.push('.');
             full_key.push_str(&subkey);
             all_keys.push(full_key);
-          } else {
-            all_keys.push(subkey.clone());
           }
         }
       },
@@ -275,7 +275,7 @@ impl Children {
 impl<'a> Display for Value<'a> {
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
     match self {
-      &Value::Integer(ref v) | &Value::Float(ref v) =>
+      &(Value::Integer(ref v) | Value::Float(ref v)) =>
         write!(f, "{}", v),
       &Value::Boolean(ref b) => write!(f, "{}", b),
       &Value::DateTime(ref v) => write!(f, "{}", v),
@@ -586,12 +586,12 @@ impl<'a> Value<'a> {
     let min = format!("{:0>2}", minute);
     let s = format!("{:0>2}", second);
     let oh = format!("{:0>2}", off_hour);
-    let omin = format!("{:0>2}", off_minute);
+    let offmin = format!("{:0>2}", off_minute);
     let mut pn = "".to_string();
     pn.push(posneg);
     match Date::from_str(y, m, d) {
       Ok(date) => {
-        match TimeOffsetAmount::from_str(pn, oh, omin) {
+        match TimeOffsetAmount::from_str(pn, oh, offmin) {
           Ok(offset) => {
             match Time::from_str(h, min, s, None, Some(TimeOffset::Time(offset))) {
               Ok(time) => Ok(Value::DateTime(DateTime::new(date, Some(time)))),
@@ -782,12 +782,12 @@ impl<'a> Value<'a> {
     let s = format!("{:0>2}", second);
     let f = format!("{}", frac);
     let oh = format!("{:0>2}", off_hour);
-    let omin = format!("{:0>2}", off_minute);
+    let offmin = format!("{:0>2}", off_minute);
     let mut pn = "".to_string();
     pn.push(posneg);
     match Date::from_str(y, m, d) {
       Ok(date) => {
-        match TimeOffsetAmount::from_str(pn, oh, omin) {
+        match TimeOffsetAmount::from_str(pn, oh, offmin) {
           Ok(offset) => {
             match Time::from_str(h, min, s, Some(f), Some(TimeOffset::Time(offset))) {
               Ok(time) => Ok(Value::DateTime(DateTime::new(date, Some(time)))),
@@ -1274,10 +1274,10 @@ impl<'a> Date<'a> {
                 leap_year = false;
               } else if y % 100 != 0 {
                 leap_year = true;
-              } else if y % 400 != 0 {
-                leap_year = false;
-              } else {
+              } else if y % 400 == 0 {
                 leap_year = true;
+              } else {
+                leap_year = false;
               }
               if leap_year && d > 29 {
                 return false;

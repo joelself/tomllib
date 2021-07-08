@@ -74,8 +74,8 @@
 //! Documentation and examples for specific types, enumeration values, and functions can be found in the `TOMLParser`
 //! docs and the `types` module docs.
 
-#![allow(clippy::manual_strip)]
-#![allow(clippy::too_many_arguments)]
+#![warn(clippy::all, clippy::pedantic)]
+#![allow(clippy::too_many_arguments, clippy::manual_strip, clippy::pub_enum_variant_names)]
 
 #[macro_use]
 extern crate nom;

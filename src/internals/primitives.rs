@@ -23,11 +23,11 @@ impl<'a> Key<'a> {
 
 #[inline(always)]
 fn is_keychar(chr: char) -> bool {
-  let uchr = chr as u32;
-  (0x41..=0x5A).contains(&uchr) || // A-Z
-  (0x61..=0x7A).contains(&uchr) || // a-z
-  (0x30..=0x39).contains(&uchr) || // 0-9
-  uchr == 0x2D || uchr == 0x5f    // "-", "_"
+  let ucharacter = chr as u32;
+  (0x41..=0x5A).contains(&ucharacter) || // A-Z
+  (0x61..=0x7A).contains(&ucharacter) || // a-z
+  (0x30..=0x39).contains(&ucharacter) || // 0-9
+  ucharacter == 0x2D || ucharacter == 0x5f    // "-", "_"
 }
 
 named!(full_line<&str, &str>, re_find!("^(.*?)(\n|(\r\n))"));

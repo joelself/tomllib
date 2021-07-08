@@ -60,15 +60,13 @@ impl<'a> Parser<'a> {
       if len > 0 {
         let errors = self.errors.clone();
         return (self, ParseResult::PartialError(leftover, line_count, 0, errors));
-      } else {
-        return (self, ParseResult::Partial(leftover, line_count, 0));
       }
+      return (self, ParseResult::Partial(leftover, line_count, 0));
     } else if len > 0 {
       let errors = self.errors.clone();
       return (self, ParseResult::FullError(errors));
-    } else {
-      (self, ParseResult::Full)
     }
+    (self, ParseResult::Full)
   }
 
   #[allow(dead_code)]
@@ -123,11 +121,11 @@ impl<'a> Parser<'a> {
   pub fn set_value<S>(self: &mut Parser<'a>, key: S, val: Value<'a>) -> bool where S: Into<String> {
     let s_key = key.into();
     {
-      let tval = match self.map.entry(s_key.clone()) {
+      let tvalue = match self.map.entry(s_key.clone()) {
         Entry::Occupied(entry) => entry.into_mut(),
         _ => return false,
       };
-      let opt_value: &mut Option<Rc<RefCell<TOMLValue<'a>>>> = &mut tval.value;
+      let opt_value: &mut Option<Rc<RefCell<TOMLValue<'a>>>> = &mut tvalue.value;
       let val_rf = match *opt_value {
         Some(ref mut v) => v,
         None => return false,
@@ -219,31 +217,27 @@ impl<'a> Parser<'a> {
       Value::Integer(ref s) => {
         if tval.validate() {
           return Some(TOMLValue::Integer(s.clone()))
-        } else {
-          None
         }
+        None
       },
       Value::Float(ref s) => {
         if tval.validate() {
           return Some(TOMLValue::Float(s.clone()))
-        } else {
-          None
         }
+        None
       },
       Value::Boolean(b) => return Some(TOMLValue::Boolean(b)),
       Value::DateTime(ref dt) => {
         if tval.validate() {
           return Some(TOMLValue::DateTime(dt.clone()))
-        } else {
-          None
         }
+        None
       },
       Value::String(ref s, st) => {
         if tval.validate() {
           return Some(TOMLValue::String(s.clone(), st))
-        } else {
-          None
         }
+        None
       },
     }
   }

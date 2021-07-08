@@ -243,8 +243,7 @@ impl<'a> PartialEq for TOMLValue<'a> {
 impl<'a> Display for TOMLValue<'a> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
     match *self {
-      TOMLValue::Integer(ref i) => write!(f, "{}", i),
-      TOMLValue::Float(ref i) => write!(f, "{}", i),
+      TOMLValue::Integer(ref i) | TOMLValue::Float(ref i)  => write!(f, "{}", i),
       TOMLValue::Boolean(ref i) => write!(f, "{}", i),
       TOMLValue::DateTime(ref i) => write!(f, "{}", i),
       TOMLValue::Array(ref i) => write!(f, "{}", *i.borrow()),
@@ -434,8 +433,8 @@ pub fn format_keys(t: &Table) -> String {
 }
 
 pub fn format_tt_keys(tabletype: &TableType) -> String {
-  match tabletype {
-    &TableType::Standard(ref t) | &TableType::Array(ref t) => {
+  match *tabletype {
+    TableType::Standard(ref t) | TableType::Array(ref t) => {
       let mut s = String::new();
       if !t.keys.is_empty() {
         for i in 0..t.keys.len() - 1 {
@@ -464,15 +463,14 @@ impl<'a> PartialEq for Table<'a> {
 
 impl<'a> Display for Table<'a> {
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-    if !self.keys.is_empty() {
+    if self.keys.is_empty() {
+      Ok(())
+    } else {
       write!(f, "{}{}", self.keys[0].ws.ws1, self.keys[0].key)?;
       for i in 1..self.keys.len() {
         write!(f, "{}", self.keys[i])?;
       }
       write!(f, "{}", self.keys[0].ws.ws2)
-    }
-    else {
-      Ok(())
     }
   }
 }
@@ -491,10 +489,10 @@ impl<'a> Table<'a> {
 
 impl<'a> TableType<'a> {
   pub fn is_subtable_of(&self, prev: &TableType<'a>) -> bool {
-    match self { 
-      &TableType::Standard(ref t) | &TableType::Array(ref t) => {
-        match prev {
-          &TableType::Standard(ref prev_table) | &TableType::Array(ref prev_table) => {
+    match *self {
+      TableType::Standard(ref t) | TableType::Array(ref t) => {
+        match *prev {
+          TableType::Standard(ref prev_table) | TableType::Array(ref prev_table) => {
             let prev_key = format_keys(&prev_table);
             let key = format_keys(t);
             if let Some(i) = key.find(&prev_key) {
@@ -617,7 +615,12 @@ impl<'a> PartialEq for ArrayValue<'a> {
 
 impl<'a> Display for ArrayValue<'a> {
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-    if !self.comment_nls.is_empty() {
+    if self.comment_nls.is_empty() {
+      match self.array_sep {
+        Some(ref s) => write!(f, "{}{},{}", *self.val.borrow(), s.ws1, s.ws2),
+        None => write!(f, "{}", *self.val.borrow()),
+      }
+    } else {
       match self.array_sep {
         Some(ref s) => write!(f, "{}{},{}", *self.val.borrow(), s.ws1, s.ws2)?,
         None => write!(f, "{}", *self.val.borrow())?,
@@ -626,11 +629,6 @@ impl<'a> Display for ArrayValue<'a> {
         write!(f, "{}", self.comment_nls[i])?;
       }
       write!(f, "{}", self.comment_nls[self.comment_nls.len() - 1])
-    } else {
-      match self.array_sep {
-        Some(ref s) => write!(f, "{}{},{}", *self.val.borrow(), s.ws1, s.ws2),
-        None => write!(f, "{}", *self.val.borrow()),
-      }
     }
   }
 }
@@ -704,7 +702,12 @@ impl<'a> PartialEq for TableKeyVal<'a> {
 
 impl<'a> Display for TableKeyVal<'a> {
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-    if !self.comment_nls.is_empty() {
+    if self.comment_nls.is_empty() {
+      match self.kv_sep {
+        Some(ref s) => write!(f, "{}{},{}", self.keyval, s.ws1, s.ws2),
+        None => write!(f, "{}", self.keyval),
+      }
+    } else {
       match self.kv_sep {
         Some(ref s) => write!(f, "{}{},{}", self.keyval, s.ws1, s.ws2)?,
         None => write!(f, "{}", self.keyval)?,
@@ -713,11 +716,6 @@ impl<'a> Display for TableKeyVal<'a> {
         write!(f, "{}", self.comment_nls[i])?;
       }
       write!(f, "{}", self.comment_nls[self.comment_nls.len() - 1])
-    } else {
-      match self.kv_sep {
-        Some(ref s) => write!(f, "{}{},{}", self.keyval, s.ws1, s.ws2),
-        None => write!(f, "{}", self.keyval),
-      }
     }
   }
 }

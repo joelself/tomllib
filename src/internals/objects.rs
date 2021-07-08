@@ -122,10 +122,10 @@ impl<'a> Parser<'a> {
                 }
               }
               if i < tb.keys.len() - 1 {
-                if last_key != "$Root$" {
-                  last_key.push('.');
-                } else {
+                if last_key == "$Root$" {
                   last_key.truncate(0);
+                } else {
+                  last_key.push('.');
                 }
                 last_key.push_str(&tb.keys[i].key);
                 if insert {
@@ -181,10 +181,9 @@ impl<'a> Parser<'a> {
         if contains {
           debug!("key already exists");
           return false;
-        } else {
-          debug!("add_to_table_set--> {}", key);
-          Parser::insert(keys, key.to_string());
         }
+        debug!("add_to_table_set--> {}", key);
+        Parser::insert(keys, key.to_string());
       }
     }
     true
@@ -336,6 +335,18 @@ impl<'a> Parser<'a> {
     )
   );
 
+  // Array
+  method!(array_sep<Parser<'a>, &'a str, WSSep>, mut self,
+    chain!(
+      ws1: call_m!(self.ws)         ~
+           tag_s!(",")~
+      ws2: call_m!(self.ws)         ,
+      ||{
+        WSSep::new_str(ws1, ws2)
+      }
+    )
+  );
+
   // Array Table
   method!(array_table<Parser<'a>, &'a str, Rc<TableType> >, mut self,
     chain!(
@@ -418,38 +429,26 @@ impl<'a> Parser<'a> {
           debug!("Before call to get_array_table_key");
           let (valid, full_key, parent_key) = Parser::get_array_table_key(&map, &self.last_array_tables,
             &self.last_array_tables_index);
-          if !valid {
+          if valid {
+            debug!("After call to get_array_table_key");
+            let contains_key = map.borrow().contains_key(&parent_key);
+            if contains_key {
+              debug!("Increment existing array of table key: {}", full_key);
+            } else {
+              debug!("Insert new array of table key: {}", full_key);
+              map.borrow_mut().insert(parent_key, HashValue::one_count());
+            }
+            map.borrow_mut().insert(full_key, HashValue::none_keys());
+            self.last_table = Some(res.clone());
+          } else {
             debug!("Setting Invalid Table {}", full_key);
             self.errors.borrow_mut().push(ParseError::InvalidTable(
               full_key, self.line_count.get(), 0,
               RefCell::new(HashMap::new())
             ));
-          } else {
-            debug!("After call to get_array_table_key");
-            let contains_key = map.borrow().contains_key(&parent_key);
-            if !contains_key {
-              debug!("Insert new array of table key: {}", full_key);
-              map.borrow_mut().insert(parent_key, HashValue::one_count());
-            } else {
-              debug!("Increment existing array of table key: {}", full_key);
-            }
-            map.borrow_mut().insert(full_key, HashValue::none_keys());
-            self.last_table = Some(res.clone());
           }
         }
         res
-      }
-    )
-  );
-
-  // Array
-  method!(array_sep<Parser<'a>, &'a str, WSSep>, mut self,
-    chain!(
-      ws1: call_m!(self.ws)         ~
-           tag_s!(",")~
-      ws2: call_m!(self.ws)         ,
-      ||{
-        WSSep::new_str(ws1, ws2)
       }
     )
   );
