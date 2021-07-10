@@ -21,7 +21,6 @@ impl<'a> Key<'a> {
   }
 }
 
-#[inline(always)]
 fn is_keychar(chr: char) -> bool {
   let ucharacter = chr as u32;
   (0x41..=0x5A).contains(&ucharacter) || // A-Z
@@ -128,17 +127,14 @@ impl<'a> Parser<'a> {
           let hash_value_opt = map_borrow.get(&full_key);
           if let Some(hash_value) = hash_value_opt {
             if let Some(ref value) = hash_value.value {
-              match *value.borrow() {
-                TOMLValue::Table => {
-                  if let Children::Keys(_) = hash_value.subkeys {
-                    debug!("Array Key \"{}\" conflicts with table key.", full_key);
-                    valid = false;
-                  }
-                },
-                _ => {
-                  debug!("/== Key \"{}\" has a value.", full_key);
+              if let TOMLValue::Table = *value.borrow() {
+                if let Children::Keys(_) = hash_value.subkeys {
+                  debug!("Array Key \"{}\" conflicts with table key.", full_key);
                   valid = false;
-                },
+                }
+              } else {
+                debug!("/== Key \"{}\" has a value.", full_key);
+                valid = false;
               }
             }
             if hash_value.value.is_some() {
@@ -198,12 +194,9 @@ impl<'a> Parser<'a> {
     let hash_value_opt = map_borrow.get(key);
     if let Some(hash_value) = hash_value_opt {
       if let Some(ref value) = hash_value.value {
-        match *value.borrow() {
-          TOMLValue::Table => return false,
-          _ => {
-            debug!("/== Key \"{}\" has a value.", key);
-            return true;
-          },
+        return if let TOMLValue::Table = *value.borrow() { false } else {
+          debug!("/== Key \"{}\" has a value.", key);
+          true
         }
       }
     }

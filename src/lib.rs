@@ -75,14 +75,15 @@
 //! docs and the `types` module docs.
 
 #![warn(clippy::all, clippy::pedantic)]
-#![allow(clippy::too_many_arguments)]
 #![allow(clippy::manual_strip)]
+#![allow(clippy::match_same_arms)]
 #![allow(clippy::match_wildcard_for_single_variants)]
 #![allow(clippy::must_use_candidate)]
 #![allow(clippy::needless_pass_by_value)]
+#![allow(clippy::non_ascii_literal)]
 #![allow(clippy::option_if_let_else)]
 #![allow(clippy::pub_enum_variant_names)]
-#![allow(clippy::match_same_arms)]
+#![allow(clippy::too_many_arguments)]
 #![allow(clippy::too_many_lines)]
 
 #[macro_use]
