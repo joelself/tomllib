@@ -274,12 +274,12 @@ impl Children {
 /// `Array` or `InlineTable`, and one space before and after an equals sign in an `InlineTable`.
 impl<'a> Display for Value<'a> {
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-    match self {
-      &(Value::Integer(ref v) | Value::Float(ref v)) =>
+    match *self {
+      Value::Integer(ref v) | Value::Float(ref v) =>
         write!(f, "{}", v),
-      &Value::Boolean(ref b) => write!(f, "{}", b),
-      &Value::DateTime(ref v) => write!(f, "{}", v),
-      &Value::Array(ref arr) => {
+      Value::Boolean(ref b) => write!(f, "{}", b),
+      Value::DateTime(ref v) => write!(f, "{}", v),
+      Value::Array(ref arr) => {
         write!(f, "[")?;
         for i in 0..arr.len() - 1 {
           write!(f, "{}, ", arr[i])?;
@@ -289,7 +289,7 @@ impl<'a> Display for Value<'a> {
         }
         write!(f, "]")
       },
-      &Value::String(ref s, ref t) => {
+      Value::String(ref s, ref t) => {
         match *t {
           StrType::Basic => write!(f, "\"{}\"", s),
           StrType::MLBasic => write!(f, "\"\"\"{}\"\"\"", s),
@@ -297,7 +297,7 @@ impl<'a> Display for Value<'a> {
           StrType::MLLiteral =>  write!(f, "'''{}'''", s),
         }
       },
-      &Value::InlineTable(ref it) => {
+      Value::InlineTable(ref it) => {
         write!(f, "{{")?;
         for i in 0..it.len() - 1 {
           write!(f, "{} = {}, ", it[i].0, it[i].1)?;
@@ -337,6 +337,11 @@ impl<'a> Value<'a> {
   ///
   /// assert_eq!(Value::Integer("200".into()), Value::int_from_str("200").unwrap());
   /// ```
+  ///
+  /// # Errors
+  ///
+  /// Will return `TOMLError` is result doesn't validate.
+  ///
   pub fn int_from_str<S>(int: S) -> Result<Value<'a>, TOMLError> where S: Into<String> + Clone {
     let result = Value::Integer(int.clone().into().into());
     if result.validate() {
@@ -371,6 +376,11 @@ impl<'a> Value<'a> {
   ///
   /// assert_eq!(Value::Float("400.4".into()), Value::float_from_str("400.4").unwrap());
   /// ```
+  ///
+  /// # Errors
+  ///
+  /// Will return `TOMLError` is result doesn't validate.
+  ///
   pub fn float_from_str<S>(float: S) -> Result<Value<'a>, TOMLError> where S: Into<String> + Clone {
     let result = Value::Float(float.clone().into().into());
     if result.validate() {
@@ -393,6 +403,10 @@ impl<'a> Value<'a> {
   pub fn bool(b: bool) -> Value<'a> {
       Value::Boolean(b)
   }
+
+  /// # Errors
+  ///
+  /// Will return `TOMLError` is result doesn't validate.
   pub fn bool_from_str<S>(b: S) -> Result<Value<'a>, TOMLError> where S: Into<String> + Clone {
     let lower = b.clone().into().to_lowercase();
     if lower == "true" {
@@ -417,6 +431,9 @@ impl<'a> Value<'a> {
   /// assert_eq!(Value::DateTime(DateTime::new(Date::from_str("2010", "04", "10").unwrap(), None)),
   ///   Value::date_from_int(2010, 4, 10).unwrap());
   /// ```
+  /// # Errors
+  ///
+  /// Will return `TOMLError` is result doesn't validate.
   pub fn date_from_int(year: usize, month: usize, day: usize) -> Result<Value<'a>, TOMLError> {
     let y = format!("{:0>4}", year);
     let m = format!("{:0>2}", month);
@@ -440,6 +457,9 @@ impl<'a> Value<'a> {
   /// assert_eq!(Value::DateTime(DateTime::new(Date::from_str("2011", "05", "11").unwrap(), None)),
   ///   Value::date_from_str("2011", "05", "11").unwrap());
   /// ```
+  /// # Errors
+  ///
+  /// Will return `TOMLError` is result doesn't validate.
   pub fn date_from_str<S>(year: S, month: S, day: S) -> Result<Value<'a>, TOMLError> where S: Into<String> + Clone {
     match Date::from_str(year.into(), month.into(), day.into()) {
       Ok(date) => {
@@ -461,6 +481,9 @@ impl<'a> Value<'a> {
   ///   Some(Time::from_str("01", "02", "03", None, None).unwrap()))),
   ///   Value::datetime_from_int(2010, 4, 10, 1, 2, 3).unwrap());
   /// ```
+  /// # Errors
+  ///
+  /// Will return `TOMLError` is result doesn't validate.
   #[allow(clippy::many_single_char_names)]
   pub fn datetime_from_int(year: usize, month: usize, day: usize, hour: usize, minute: usize, second: usize) -> Result<Value<'a>, TOMLError> {
     let y = format!("{:0>4}", year);
@@ -492,6 +515,9 @@ impl<'a> Value<'a> {
   ///   Some(Time::from_str("02", "03", "04", None, None).unwrap()))),
   ///   Value::datetime_from_str("2011", "05", "11", "02", "03", "04").unwrap());
   /// ```
+  /// # Errors
+  ///
+  /// Will return `TOMLError` is result doesn't validate.
   pub fn datetime_from_str<S>(year: S, month: S, day: S, hour: S, minute: S, second: S) -> Result<Value<'a>, TOMLError> where S: Into<String> + Clone {
     match Date::from_str(year.into(), month.into(), day.into()) {
       Ok(date) => {
@@ -518,6 +544,9 @@ impl<'a> Value<'a> {
   ///   Some(Time::from_str("01", "02", "03", Some("5432".into()), None).unwrap()))),
   ///   Value::datetime_frac_from_int(2010, 4, 10, 1, 2, 3, 5432).unwrap());
   /// ```
+  /// # Errors
+  ///
+  /// Will return `TOMLError` is result doesn't validate.
   #[allow(clippy::many_single_char_names)]
   pub fn datetime_frac_from_int(year: usize, month: usize, day: usize, hour: usize, minute: usize, second: usize, frac: usize) -> Result<Value<'a>, TOMLError> {
     let y = format!("{:0>4}", year);
@@ -550,6 +579,9 @@ impl<'a> Value<'a> {
   ///   Some(Time::from_str("02", "03", "04", Some("0043".into()), None).unwrap()))),
   ///   Value::datetime_frac_from_str("2011", "05", "11", "02", "03", "04", "0043").unwrap());
   /// ```
+  /// # Errors
+  ///
+  /// Will return `TOMLError` is result doesn't validate.
   pub fn datetime_frac_from_str<S>(year: S, month: S, day: S, hour: S, minute: S, second: S, frac: S) -> Result<Value<'a>, TOMLError> where S: Into<String> + Clone{
     match Date::from_str(year.into(), month.into(), day.into()) {
       Ok(date) => {
@@ -577,6 +609,9 @@ impl<'a> Value<'a> {
   ///   ).unwrap()))).unwrap()))),
   ///   Value::datetime_offset_from_int(2010, 4, 10, 1, 2, 3, '+', 8, 0).unwrap());
   /// ```
+  /// # Errors
+  ///
+  /// Will return `TOMLError` is result doesn't validate.
   #[allow(clippy::many_single_char_names)]
   pub fn datetime_offset_from_int(year: usize, month: usize, day: usize, hour: usize, minute: usize, second: usize, posneg: char, off_hour: usize, off_minute: usize) -> Result<Value<'a>, TOMLError> {
     let y = format!("{:0>4}", year);
@@ -619,6 +654,10 @@ impl<'a> Value<'a> {
   ///   ).unwrap()))).unwrap()))),
   ///   Value::datetime_offset_from_str("2011", "05", "11", "02", "03", "04", "+", "09", "30").unwrap());
   /// ```
+  ///
+  /// # Errors
+  ///
+  /// Will return `TOMLError` is result doesn't validate.
   pub fn datetime_offset_from_str<S>(year: S, month: S, day: S, hour: S, minute: S, second: S, posneg: S, off_hour: S, off_minute: S) -> Result<Value<'a>, TOMLError> where S: Into<String> + Clone{
     match Date::from_str(year.into(), month.into(), day.into()) {
       Ok(date) => {
@@ -650,6 +689,10 @@ impl<'a> Value<'a> {
   ///   Some(Time::from_str("01", "02", "03", None, Some(TimeOffset::Zulu)).unwrap()))),
   ///   Value::datetime_zulu_from_int(2010, 4, 10, 1, 2, 3).unwrap());
   /// ```
+  ///
+  /// # Errors
+  ///
+  /// Will return `TOMLError` is result doesn't validate.
   #[allow(clippy::many_single_char_names)]
   pub fn datetime_zulu_from_int(year: usize, month: usize, day: usize, hour: usize, minute: usize, second: usize) -> Result<Value<'a>, TOMLError> {
     let y = format!("{:0>4}", year);
@@ -681,6 +724,10 @@ impl<'a> Value<'a> {
   ///   Some(Time::from_str("02", "03", "04", None, Some(TimeOffset::Zulu)).unwrap()))),
   ///   Value::datetime_zulu_from_str("2011", "05", "11", "02", "03", "04").unwrap());
   /// ```
+  ///
+  /// # Errors
+  ///
+  /// Will return `TOMLError` is result doesn't validate.
   pub fn datetime_zulu_from_str<S>(year: S, month: S, day: S, hour: S, minute: S, second: S) -> Result<Value<'a>, TOMLError> where S: Into<String> + Clone {
     match Date::from_str(year.into(), month.into(), day.into()) {
       Ok(date) => {
@@ -709,6 +756,10 @@ impl<'a> Value<'a> {
   ///   Some(Time::from_str("01", "02", "03", Some("5678".into()), Some(TimeOffset::Zulu)).unwrap()))),
   ///   Value::datetime_full_zulu_from_int(2010, 4, 10, 1, 2, 3, 5678).unwrap());
   /// ```
+  ///
+  /// # Errors
+  ///
+  /// Will return `TOMLError` is result doesn't validate.
   #[allow(clippy::many_single_char_names)]
   pub fn datetime_full_zulu_from_int(year: usize, month: usize, day: usize, hour: usize, minute: usize, second: usize, frac: u64) -> Result<Value<'a>, TOMLError> {
     let y = format!("{:0>4}", year);
@@ -741,6 +792,10 @@ impl<'a> Value<'a> {
   ///   Some(Time::from_str("02", "03", "04", None, Some(TimeOffset::Zulu)).unwrap()))),
   ///   Value::datetime_zulu_from_str("2011", "05", "11", "02", "03", "04").unwrap());
   /// ```
+  ///
+  /// # Errors
+  ///
+  /// Will return `TOMLError` is result doesn't validate.
   pub fn datetime_full_zulu_from_str<S>(year: S, month: S, day: S, hour: S, minute: S, second: S, frac: S) -> Result<Value<'a>, TOMLError> where S: Into<String> + Clone {
     match Date::from_str(year.into(), month.into(), day.into()) {
       Ok(date) => {
@@ -772,6 +827,10 @@ impl<'a> Value<'a> {
   ///   ).unwrap()))).unwrap()))),
   ///   Value::datetime_full_from_int(2010, 4, 10, 1, 2, 3, 135, '-', 11, 0).unwrap());
   /// ```
+  ///
+  /// # Errors
+  ///
+  /// Will return `TOMLError` is result doesn't validate.
   #[allow(clippy::many_single_char_names)]
   pub fn datetime_full_from_int(year: usize, month: usize, day: usize, hour: usize, minute: usize, second: usize, frac: u64, posneg: char, off_hour: usize, off_minute: usize) -> Result<Value<'a>, TOMLError> {
     let y = format!("{:0>4}", year);
@@ -815,6 +874,10 @@ impl<'a> Value<'a> {
   ///   ).unwrap()))).unwrap()))),
   ///   Value::datetime_full_from_str("2011", "05", "11", "02", "03", "04", "0864","+", "09", "30").unwrap());
   /// ```
+  ///
+  /// # Errors
+  ///
+  /// Will return `TOMLError` is result doesn't validate.
   pub fn datetime_full_from_str<S>(year: S, month: S, day: S, hour: S, minute: S, second: S, frac: S, posneg: S, off_hour: S, off_minute: S) -> Result<Value<'a>, TOMLError> where S: Into<String> + Clone {
     match Date::from_str(year.into(), month.into(), day.into()) {
       Ok(date) => {
@@ -847,6 +910,10 @@ impl<'a> Value<'a> {
   ///   ).unwrap()))).unwrap()))),
   ///   Value::datetime_parse("2012-06-12T02:03:04.0864+10:30").unwrap());
   /// ```
+  ///
+  /// # Errors
+  ///
+  /// Will return `TOMLError` is result doesn't validate.
   pub fn datetime_parse<S>(dt: S) -> Result<Value<'a>, TOMLError> where S: Into<&'a str> {
     let datetime = dt.into();
     let p = Parser::new();
@@ -873,6 +940,10 @@ impl<'a> Value<'a> {
   ///
   /// assert_eq!(Value::String("foobar".into(), StrType::Basic), Value::basic_string("foobar").unwrap());
   /// ```
+  ///
+  /// # Errors
+  ///
+  /// Will return `TOMLError` is result doesn't validate.
   pub fn basic_string<S>(s: S) -> Result<Value<'a>, TOMLError> where S: Into<String> + Clone {
     let result = Value::String(s.clone().into().into(), StrType::Basic);
     if result.validate() {
@@ -892,6 +963,10 @@ impl<'a> Value<'a> {
   ///
   /// assert_eq!(Value::String("foo\nbar".into(), StrType::MLBasic), Value::ml_basic_string("foo\nbar").unwrap());
   /// ```
+  ///
+  /// # Errors
+  ///
+  /// Will return `TOMLError` is result doesn't validate.
   pub fn ml_basic_string<S>(s: S) -> Result<Value<'a>, TOMLError> where S: Into<String> + Clone {
     let result = Value::String(s.clone().into().into(), StrType::MLBasic);
     if result.validate() {
@@ -911,6 +986,10 @@ impl<'a> Value<'a> {
   ///
   /// assert_eq!(Value::String("\"foobar\"".into(), StrType::Literal), Value::literal_string("\"foobar\"").unwrap());
   /// ```
+  ///
+  /// # Errors
+  ///
+  /// Will return `TOMLError` is result doesn't validate.
   pub fn literal_string<S>(s: S) -> Result<Value<'a>, TOMLError> where S: Into<String> + Clone {
     let result = Value::String(s.clone().into().into(), StrType::Literal);
     if result.validate() {
@@ -931,6 +1010,10 @@ impl<'a> Value<'a> {
   /// assert_eq!(Value::String("\"foo\nbar\"".into(), StrType::MLLiteral),
   ///   Value::ml_literal_string("\"foo\nbar\"").unwrap());
   /// ```
+  ///
+  /// # Errors
+  ///
+  /// Will return `TOMLError` is result doesn't validate.
   pub fn ml_literal_string<S>(s: S) -> Result<Value<'a>, TOMLError> where S: Into<String> + Clone {
     let result = Value::String(s.clone().into().into(), StrType::MLLiteral);
     if result.validate() {
@@ -1137,6 +1220,10 @@ impl<'a> TimeOffsetAmount<'a> {
   ///
   /// let offset = TimeOffsetAmount::from_str("-", "04", "00").unwrap();
   /// ```
+  ///
+  /// # Errors
+  ///
+  /// Will return `TOMLError` is result doesn't validate.
   pub fn from_str<S>(pos_neg: S, hour: S, minute: S) -> Result<TimeOffsetAmount<'a>, TOMLError> where S: Into<String>{
     let pn = match pos_neg.into().as_ref() {
       "+" => PosNeg::Pos,
@@ -1226,6 +1313,10 @@ impl<'a> Date<'a> {
   ///
   /// let date = Date::from_str("1991", "09", "23").unwrap();
   /// ```
+  ///
+  /// # Errors
+  ///
+  /// Will return `TOMLError` is result doesn't validate.
   pub fn from_str<S>(year: S, month: S, day: S) -> Result<Date<'a>, TOMLError> where S: Into<String> {
     let date = Date{year: year.into().into(), month: month.into().into(), day: day.into().into()};
     if date.validate() {
@@ -1254,6 +1345,7 @@ impl<'a> Date<'a> {
     self.validate_numbers()
   }
 
+  #[allow(clippy::if_same_then_else)]
   fn validate_numbers(&self) -> bool {
     if let Ok(y) = usize::from_str(&self.year) {
       if y == 0 || y > 9999{
@@ -1348,6 +1440,10 @@ impl<'a> Time<'a> {
   ///
   /// let time = Time::from_str("19", "33", "02", None, None).unwrap();
   /// ```
+  ///
+  /// # Errors
+  ///
+  /// Will return `TOMLError` is result doesn't validate.
   pub fn from_str<S>(hour: S, minute: S, second: S, fraction: Option<S>, offset: Option<TimeOffset<'a>>)
     -> Result<Time<'a>, TOMLError> where S: Into<String> {
     if let Some(s) = fraction {
